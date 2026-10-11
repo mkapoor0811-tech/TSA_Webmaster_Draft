@@ -1,537 +1,764 @@
+const soundEngine = {
+  ctx: null,
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  },
+  playTone(freq, type, duration) {
+    try {
+      this.init();
+      if (this.ctx.state === "suspended") this.ctx.resume();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + duration);
+    } catch (e) {}
+  },
+  click() { this.playTone(400, "triangle", 0.08); },
+  fanfare() {
+    setTimeout(() => this.playTone(523.25, "sine", 0.15), 0);
+    setTimeout(() => this.playTone(659.25, "sine", 0.20), 100);
+    setTimeout(() => this.playTone(783.99, "sine", 0.35), 200);
+  }
+};
+
 const app = {
   state: {
     xp: 0,
     level: 1,
-    completed: [false, false, false, false],
-    cores: [false, false, false, false]
+    nodes: [false, false, false, false],
+    quizzes: [false, false, false, false, false],
+    bossDefeated: false
   },
 
   quizData: [
-    {
-      q: "Checkpoint 1: Why do modern Transformers outperform older Recurrent Neural Networks (RNNs) on long text?",
-      opts: [
-        "A) Transformers only process words one at a time to prevent overflows.",
-        "B) Transformers compute Self-Attention dot-products across all tokens in parallel.",
-        "C) Transformers store static dictionary files on computer hard drives."
-      ],
-      correct: 1,
-      exp: "Correct! Self-Attention processes all sequence tokens in parallel via matrix multiplications."
-    },
-    {
-      q: "Checkpoint 2: What is the student's responsibility when an AI generates a research paper citation?",
-      opts: [
-        "A) Paste the citation directly into the bibliography without checking.",
-        "B) Verify the title, authors, and DOI in an established repository like PubMed or JSTOR.",
-        "C) Ask the same AI model if it is confident in its citation."
-      ],
-      correct: 1,
-      exp: "Correct! LLMs produce probabilistic text rather than indexed queries, making verification essential."
-    },
-    {
-      q: "Checkpoint 3: If an automated admissions algorithm admits Group A at 80% and Group B at 50%, does this violate the Four-Fifths rule?",
-      opts: [
-        "A) Yes; 50/80 = 62.5%, which is below the 80% threshold and indicates disparate impact.",
-        "B) No; any acceptance rate above 40% is legally fair.",
-        "C) Disparate impact only applies to physical machinery."
-      ],
-      correct: 0,
-      exp: "Correct! 50/80 is 62.5%, which violates the EEOC Four-Fifths (80%) disparate impact standard."
-    },
-    {
-      q: "Capstone Scenario: A vendor offers an attendance risk model but refuses to share training data. What action should you recommend?",
-      opts: [
-        "A) Approve the contract immediately because proprietary software is reliable.",
-        "B) Reject deployment until independent bias audits, explainability, and human oversight safeguards are verified.",
-        "C) Delete all previous student attendance records."
-      ],
-      correct: 1,
-      exp: "Correct! High-stakes school algorithms require independent bias audits and explainability safeguards."
-    }
+    { correct: 0, exp: "Correct! The bias shifts the decision threshold independently of inputs." },
+    { correct: 1, exp: "Correct! Orthogonal vectors have a dot product of 0, meaning zero directional correlation." },
+    { correct: 0, exp: "Correct! Dividing by sqrt(d_k) prevents large dot products from causing vanishing gradients in softmax." },
+    { correct: 0, exp: "Correct! 42 / 70 = 60%, which is below the 80% federal limit and shows adverse impact." },
+    { correct: 0, exp: "Correct! Systems that affect student educational opportunities are classified as High Risk." }
   ],
 
-  load() {
+  init() {
     try {
-      const saved = localStorage.getItem("nexus_ai_intermediate_v2");
+      const saved = localStorage.getItem("nexus_citadel_state_clean_v3");
       if (saved) this.state = JSON.parse(saved);
     } catch (e) {
       console.warn("Storage fallback initiated", e);
     }
+    this.sync();
   },
 
   save() {
     try {
-      localStorage.setItem("nexus_ai_intermediate_v2", JSON.stringify(this.state));
+      localStorage.setItem("nexus_citadel_state_clean_v3", JSON.stringify(this.state));
     } catch (e) {
       console.warn("Storage write failure", e);
     }
   },
 
-  navigate(tabName) {
-    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  nav(tabId) {
+    soundEngine.click();
+    document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-
-    const targetPanel = document.getElementById("tab-" + tabName);
-    if (targetPanel) targetPanel.classList.add("active");
-
-    const targetBtn = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
-    if (targetBtn) targetBtn.classList.add("active");
-
+    const page = document.getElementById("tab-" + tabId);
+    if (page) page.classList.add("active");
+    const btn = document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
+    if (btn) btn.classList.add("active");
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (tabId === "dragon") {
+      dragonBossRaid.checkUnlock();
+    }
   },
 
   collectCore(idx) {
-    if (this.state.cores[idx]) return;
-
-    this.state.cores[idx] = true;
+    if (this.state.nodes[idx]) return;
+    soundEngine.fanfare();
+    this.state.nodes[idx] = true;
     this.state.xp = Math.min(1000, this.state.xp + 50);
     this.save();
-    this.syncUI();
+    this.sync();
 
-    const box = document.getElementById("core" + idx);
-    if (box) {
-      box.classList.add("collected");
-      box.innerHTML = `
-        <span class="core-icon">✓</span>
+    const banner = document.getElementById("coreBanner" + idx);
+    if (banner) {
+      banner.classList.add("collected");
+      banner.innerHTML = `
+        <div class="core-glyph">✓</div>
         <div>
-          <strong>Synapse Core Ω_${idx + 1} Harvested!</strong>
-          <small>Added to your vault (+50 XP Secured)</small>
+          <strong>Archon Rune ${idx + 1} Captured!</strong>
+          <small>Tensor node checkpoint secured in vault (+50 XP)</small>
         </div>
       `;
     }
   },
 
-  answerQuiz(quizIdx, choiceIdx, btnElement) {
-    const data = this.quizData[quizIdx];
-    const container = document.getElementById("quiz-opts-" + quizIdx);
-    container.querySelectorAll(".choice-btn").forEach(b => b.disabled = true);
+  quiz(idx, pick, btn) {
+    const data = this.quizData[idx];
+    const fb = document.getElementById("qfb" + idx);
+    const parent = btn.parentElement;
+    parent.querySelectorAll("button").forEach(b => b.disabled = true);
 
-    const feedback = document.getElementById("fb" + quizIdx);
+    if (pick === data.correct) {
+      soundEngine.fanfare();
+      btn.classList.add("correct");
+      fb.style.color = "#6ee7b7";
+      fb.textContent = "✓ " + data.exp;
 
-    if (choiceIdx === data.correct) {
-      btnElement.classList.add("correct");
-      feedback.style.color = "var(--green)";
-      feedback.textContent = "✓ " + data.exp;
-
-      if (!this.state.completed[quizIdx]) {
-        this.state.completed[quizIdx] = true;
-        this.state.xp = Math.min(1000, this.state.xp + 200);
+      if (!this.state.quizzes[idx]) {
+        this.state.quizzes[idx] = true;
+        this.state.xp = Math.min(1000, this.state.xp + 160);
         this.save();
-        this.syncUI();
+        this.sync();
       }
     } else {
-      btnElement.classList.add("wrong");
-      container.children[data.correct].classList.add("correct");
-      feedback.style.color = "var(--red)";
-      feedback.textContent = "Review: " + data.exp;
+      soundEngine.click();
+      btn.classList.add("wrong");
+      parent.children[data.correct].classList.add("correct");
+      fb.style.color = "#fca5a5";
+      fb.textContent = "Review: " + data.exp;
     }
   },
 
-  syncUI() {
+  sync() {
     this.state.level = this.state.xp >= 750 ? 4 : this.state.xp >= 500 ? 3 : this.state.xp >= 250 ? 2 : 1;
-
-    document.getElementById("hudLvl").textContent = this.state.level;
     document.getElementById("hudXp").textContent = this.state.xp;
+    document.getElementById("hubScoreVal").textContent = this.state.xp;
+    document.getElementById("hubLvlVal").textContent = this.state.level;
+    document.getElementById("hubFillBar").style.width = (this.state.xp / 10) + "%";
 
-    const glyphs = ["🧠", "⚡", "⚖️", "🧭"];
+    const collectedCount = this.state.nodes.filter(Boolean).length;
+    document.getElementById("coreCounter").textContent = `${collectedCount}/4 RUNES`;
+
     for (let i = 0; i < 4; i++) {
-      const slot = document.getElementById("v" + i);
-      if (slot) slot.textContent = this.state.cores[i] ? glyphs[i] : "⚪";
-    }
-
-    const dashXp = document.getElementById("dashXp");
-    const dashLvl = document.getElementById("dashLvl");
-    const dashFill = document.getElementById("dashFill");
-    if (dashXp) dashXp.textContent = this.state.xp;
-    if (dashLvl) dashLvl.textContent = this.state.level;
-    if (dashFill) dashFill.style.width = (this.state.xp / 10) + "%";
-
-    for (let j = 0; j < 4; j++) {
-      const progEl = document.getElementById("prog" + j);
-      if (progEl) {
-        progEl.textContent = this.state.completed[j] ? "100% Certified" : "0%";
-        progEl.style.color = this.state.completed[j] ? "var(--green)" : "var(--blue)";
+      const comp = document.getElementById("comp" + i);
+      if (comp) {
+        comp.textContent = this.state.quizzes[i] ? "100% Verified" : "0%";
+        comp.style.color = this.state.quizzes[i] ? "#d97706" : "#94a3b8";
       }
-      const badge = document.getElementById("b" + j);
-      if (badge && this.state.completed[j]) badge.className = "card badge-box unlocked";
     }
 
-    const cert = document.getElementById("certBanner");
-    if (cert) cert.style.display = this.state.xp >= 1000 ? "flex" : "none";
+    const diploma = document.getElementById("diplomaBanner");
+    if (diploma) diploma.style.display = this.state.xp >= 1000 ? "flex" : "none";
+
+    dragonBossRaid.checkUnlock();
   },
 
-  judgeUnlock() {
-    this.state = { xp: 1000, level: 4, completed: [true, true, true, true], cores: [true, true, true, true] };
+  judgePass() {
+    soundEngine.fanfare();
+    this.state = {
+      xp: 1000,
+      level: 4,
+      nodes: [true, true, true, true],
+      quizzes: [true, true, true, true, true],
+      bossDefeated: true
+    };
     this.save();
-    this.syncUI();
-    alert("⚡ Judge Mode Activated: 1,000 XP granted, all badges unlocked, diploma verified.");
+    this.sync();
   },
 
   reset() {
-    if (confirm("Reset local player progress back to Level 1?")) {
-      this.state = { xp: 0, level: 1, completed: [false, false, false, false], cores: [false, false, false, false] };
+    if (confirm("Reset Citadel workshop progress?")) {
+      this.state = {
+        xp: 0,
+        level: 1,
+        nodes: [false, false, false, false],
+        quizzes: [false, false, false, false, false],
+        bossDefeated: false
+      };
       this.save();
       location.reload();
     }
-  },
+  }
+};
 
-  updateTokens() {
-    const input = document.getElementById("tokInput");
-    const text = input ? input.value.trim() : "";
-    const tray = document.getElementById("tokenOutput");
-    const count = document.getElementById("tokenCount");
-    if (!text) { if (tray) tray.innerHTML = ""; if (count) count.textContent = "0"; return; }
+const companion = {
+  speak(who) {
+    soundEngine.click();
+    const princeLines = [
+      "Check out Figure 1.2 below to trace how a perceptron sums inputs before step activation!",
+      "If learning rate alpha is too high in Figure 3.2, gradients overshoot the loss bowl into divergence.",
+      "The dot product calculates cosine similarity between word vectors."
+    ];
+    const princessLines = [
+      "In Figure 2.1, notice how adding and subtracting vectors moves meanings geometrically across the plane!",
+      "Review the C.R.A.F.T. matrix in Figure 2.2 before prompt engineering; constraints keep models factual.",
+      "Always check paper DOIs on real databases before citing AI summaries."
+    ];
 
-    const tokens = text.match(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+|[^\s\w]/g) || [text];
-    if (count) count.textContent = tokens.length;
-    if (tray) {
-      tray.innerHTML = "";
-      tokens.forEach(t => {
-        const chip = document.createElement("span");
-        chip.className = "chip";
-        chip.textContent = t;
-        tray.appendChild(chip);
-      });
-    }
-  },
-
-  evaluatePrompt() {
-    const input = document.getElementById("craftInput");
-    const val = input ? input.value.toLowerCase() : "";
-    const c = val.length > 25;
-    const r = /act as|you are|tutor|teacher|expert|evaluator/.test(val);
-    const a = /explain|analyze|break down|compare|solve|list/.test(val);
-    const f = /bullet|table|json|paragraph|numbered/.test(val);
-    const t = /high school|student|beginner|9th|10th/.test(val);
-
-    document.getElementById("pContext").classList.toggle("active", c);
-    document.getElementById("pRole").classList.toggle("active", r);
-    document.getElementById("pAction").classList.toggle("active", a);
-    document.getElementById("pFormat").classList.toggle("active", f);
-    document.getElementById("pAudience").classList.toggle("active", t);
-
-    const score = [c, r, a, f, t].filter(Boolean).length * 20;
-    document.getElementById("craftScore").textContent = score + "%";
-    const hint = document.getElementById("craftHint");
-    hint.textContent = score === 100 ? "✓ Exemplary: All 5 C.R.A.F.T. parameters detected." : "Add missing parameters (e.g., Role or Format).";
-    hint.style.color = score === 100 ? "var(--green)" : "var(--blue)";
-  },
-
-  updateBias() {
-    const slider = document.getElementById("biasSlider");
-    const val = parseInt(slider.value);
-    const gA = val;
-    const gB = 100 - val;
-    document.getElementById("ratioLabel").textContent = `${gA}% Group A / ${gB}% Group B`;
-
-    const confA = Math.min(95, Math.max(30, Math.round(gA * 1.05 + 10)));
-    const confB = Math.min(95, Math.max(25, Math.round(gB * 1.05 + 10)));
-
-    document.getElementById("fillA").style.width = confA + "%";
-    document.getElementById("fillB").style.width = confB + "%";
-    document.getElementById("confA").textContent = confA + "%";
-    document.getElementById("confB").textContent = confB + "%";
-
-    const diff = Math.abs(confA - confB);
-    const badge = document.getElementById("parityBadge");
-    const hint = document.getElementById("fairnessHint");
-
-    if (diff <= 12) {
-      badge.textContent = "Status: Balanced";
-      badge.style.color = "var(--green)";
-      hint.textContent = "Balanced distribution: model outputs achieve demographic parity under the 80% rule.";
+    if (who === "prince") {
+      const text = princeLines[Math.floor(Math.random() * princeLines.length)];
+      document.getElementById("princeSpeech").innerHTML = `<strong>Prince Valen:</strong> "${text}"`;
     } else {
-      badge.textContent = "Status: Skewed";
-      badge.style.color = "var(--red)";
-      hint.textContent = `Alert: ${diff}% disparity. The underrepresented cohort receives higher false rejections.`;
+      const text = princessLines[Math.floor(Math.random() * princessLines.length)];
+      document.getElementById("princessSpeech").innerHTML = `<strong>Princess Aurelia:</strong> "${text}"`;
     }
   },
 
-  inspectNode(key) {
-    const data = {
-      embed: {
-        t: "1. Input & Positional Embeddings",
-        m: "E = TokenEmbedding(x) + PositionalEncoding(pos)",
-        d: "Maps tokens to 512-dimensional continuous vectors and injects sinusoidal waveforms to track word order.",
-        in: "[Batch, Sequence]",
-        out: "[Batch, Sequence, 512]"
-      },
-      mha: {
-        t: "2. Multi-Head Self-Attention",
-        m: "Attention(Q,K,V) = softmax((Q*K^T)/√d_k)*V",
-        d: "Computes dot-product affinity matrices between every word pair in parallel, tracking sentence context.",
-        in: "[Batch, Sequence, 512]",
-        out: "[Batch, Sequence, 512]"
-      },
-      norm: {
-        t: "3. Residual Add & Layer Normalization",
-        m: "Output = LayerNorm(x + Sublayer(x))",
-        d: "Skip-connections pass identity gradients directly around sublayers, preventing vanishing gradients.",
-        in: "[Batch, Sequence, 512]",
-        out: "[Batch, Sequence, 512]"
-      },
-      ffn: {
-        t: "4. Feed-Forward Neural Network",
-        m: "FFN(x) = max(0, x*W1 + b1)*W2 + b2",
-        d: "Applies two dense linear transformations with GELU activation to expand features into 2,048 dimensions.",
-        in: "[Batch, Sequence, 512]",
-        out: "[Batch, Sequence, 2048]"
-      }
-    };
-    const node = data[key];
-    if (!node) return;
-    document.getElementById("hudTitle").textContent = node.t;
-    document.getElementById("hudMath").textContent = node.m;
-    document.getElementById("hudDesc").textContent = node.d;
-    document.getElementById("hudIn").textContent = node.in;
-    document.getElementById("hudOut").textContent = node.out;
-  },
+  track(e) {
+    const pl = document.getElementById("princeEyeL");
+    const pr = document.getElementById("princeEyeR");
+    const al = document.getElementById("princessEyeL");
+    const ar = document.getElementById("princessEyeR");
+    if (!pl || !pr || !al || !ar) return;
 
-  pulseNet() {
-    neuralNetwork.isPulsing = true;
-    neuralNetwork.pulseProgress = 0;
-    document.getElementById("pulseText").textContent = "Transmitting activations...";
+    const r1 = pl.getBoundingClientRect();
+    const a1 = Math.atan2(e.clientY - r1.top, e.clientX - r1.left);
+    pl.setAttribute("cx", 43 + Math.cos(a1) * 1.5);
+    pl.setAttribute("cy", 44 + Math.sin(a1) * 1.5);
+    pr.setAttribute("cx", 57 + Math.cos(a1) * 1.5);
+    pr.setAttribute("cy", 44 + Math.sin(a1) * 1.5);
+
+    const r2 = al.getBoundingClientRect();
+    const a2 = Math.atan2(e.clientY - r2.top, e.clientX - r2.left);
+    al.setAttribute("cx", 43 + Math.cos(a2) * 1.5);
+    al.setAttribute("cy", 44 + Math.sin(a2) * 1.5);
+    ar.setAttribute("cx", 57 + Math.cos(a2) * 1.5);
+    ar.setAttribute("cy", 44 + Math.sin(a2) * 1.5);
   }
 };
 
-class Particle {
-  constructor(canvasWidth, canvasHeight) {
-    this.x = Math.random() * canvasWidth;
-    this.y = Math.random() * canvasHeight;
-    this.vx = (Math.random() - 0.5) * 0.4;
-    this.vy = (Math.random() - 0.5) * 0.4;
-    this.radius = 1.5;
-  }
-
-  update(width, height, mouse) {
-    this.x += this.vx;
-    this.y += this.vy;
-
-    if (this.x < 0 || this.x > width) this.vx *= -1;
-    if (this.y < 0 || this.y > height) this.vy *= -1;
-
-    if (mouse.x !== null) {
-      const dx = mouse.x - this.x;
-      const dy = mouse.y - this.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < 100) {
-        this.x -= (dx / dist) * 1.5;
-        this.y -= (dy / dist) * 1.5;
-      }
-    }
-  }
-
-  draw(ctx) {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(148, 163, 184, 0.4)";
-    ctx.fill();
-  }
-}
-
-const bgSimulation = {
-  canvas: document.getElementById("bgCanvas"),
-  ctx: null,
-  particles: [],
-  mouse: { x: null, y: null },
-
-  init() {
-    if (!this.canvas) return;
-    this.ctx = this.canvas.getContext("2d");
-    this.resize();
-    window.addEventListener("resize", () => this.resize());
-    window.addEventListener("mousemove", e => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
-    window.addEventListener("mouseout", () => { this.mouse.x = null; this.mouse.y = null; });
-    this.animate();
-  },
-
-  resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-    const count = Math.floor((this.canvas.width * this.canvas.height) / 18000);
-    this.particles = Array.from({ length: count }, () => new Particle(this.canvas.width, this.canvas.height));
-  },
-
-  animate() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    for (let i = 0; i < this.particles.length; i++) {
-      const p = this.particles[i];
-      p.update(this.canvas.width, this.canvas.height, this.mouse);
-      p.draw(this.ctx);
-
-      for (let j = i + 1; j < this.particles.length; j++) {
-        const p2 = this.particles[j];
-        const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-        if (dist < 80) {
-          this.ctx.beginPath();
-          this.ctx.moveTo(p.x, p.y);
-          this.ctx.lineTo(p2.x, p2.y);
-          this.ctx.strokeStyle = `rgba(203, 213, 225, ${0.15 * (1 - dist / 80)})`;
-          this.ctx.lineWidth = 0.5;
-          this.ctx.stroke();
-        }
-      }
-    }
-    requestAnimationFrame(() => this.animate());
-  }
-};
-
-const neuralNetwork = {
-  canvas: document.getElementById("neuralCanvas"),
-  ctx: null,
-  nodes: [
-    { x: 50, y: 50, layer: 0, label: "x₁" },
-    { x: 50, y: 110, layer: 0, label: "x₂" },
-    { x: 50, y: 170, layer: 0, label: "x₃" },
-    { x: 190, y: 70, layer: 1, label: "h₁" },
-    { x: 190, y: 130, layer: 1, label: "h₂" },
-    { x: 330, y: 100, layer: 2, label: "y₁" }
+const govBench = {
+  controls: [
+    { title: "1. Training Data Provenance & Lineage", desc: "Auditors verify data collection licenses, scrub student identifiers under FERPA guidelines, and check representation ratios across demographic groups to prevent baked-in historical bias." },
+    { title: "2. Model Card & Architectural Disclosure", desc: "Standardized documentation detailing intended use cases, known failure boundaries, training hyperparameters, evaluation benchmarks, and ethical limitations per NIST AI RMF." },
+    { title: "3. Adversarial Red-Teaming & Stress Tests", desc: "Security teams execute prompt injection attacks, jailbreak simulations, and adversarial tests to verify safety guardrails before deploying software in schools." },
+    { title: "4. Telemetry Drift & Continuous Auditing", desc: "Real-time production monitoring tracking concept drift, prediction variance, disparate impact shifts, and maintaining active counselor override controls." }
   ],
-  draggingNode: null,
-  pulseProgress: 0,
-  isPulsing: false,
+  inspect(idx) {
+    soundEngine.click();
+    document.querySelectorAll(".btn-pipeline").forEach((b, i) => b.classList.toggle("active", i === idx));
+    const data = this.controls[idx];
+    document.getElementById("govPipeTitle").textContent = data.title;
+    document.getElementById("govPipeDesc").textContent = data.desc;
+  }
+};
+
+const tier1Bench = {
+  update() {
+    const x = parseInt(document.getElementById("sliderB1X").value) / 10;
+    const w = parseInt(document.getElementById("sliderB1W").value) / 10;
+    const b = parseInt(document.getElementById("sliderB1B").value) / 10;
+
+    document.getElementById("lblB1X").textContent = x.toFixed(1);
+    document.getElementById("lblB1W").textContent = w.toFixed(1);
+    document.getElementById("lblB1B").textContent = b.toFixed(1);
+
+    const sum = (w * x) + b;
+    const fired = sum > 0;
+
+    document.getElementById("b1Sum").textContent = sum.toFixed(2);
+    const outEl = document.getElementById("b1Output");
+    const expEl = document.getElementById("b1Explanation");
+    const statusEl = document.getElementById("b1Status");
+
+    if (fired) {
+      outEl.textContent = "FIRED (1.0)";
+      outEl.style.color = "#059669";
+      statusEl.textContent = "STATE: ACTIVE";
+      statusEl.style.color = "#059669";
+      expEl.textContent = "Neuron fired. Affine calculation exceeds zero threshold.";
+    } else {
+      outEl.textContent = "SUPPRESSED (0.0)";
+      outEl.style.color = "#dc2626";
+      statusEl.textContent = "STATE: INACTIVE";
+      statusEl.style.color = "#dc2626";
+      expEl.textContent = "Neuron suppressed. Affine sum is below zero threshold.";
+    }
+  }
+};
+
+const vectorExplorer = {
+  canvas: document.getElementById("vectorCanvas"),
+  ctx: null,
+  words: [
+    { label: "King", x: 300, y: 65, color: "#38bdf8" },
+    { label: "Queen", x: 280, y: 90, color: "#a855f7" },
+    { label: "Man", x: 190, y: 145, color: "#0284c7" },
+    { label: "Woman", x: 170, y: 170, color: "#ec4899" },
+    { label: "Citadel", x: 90, y: 70, color: "#d97706" }
+  ],
+  dragged: null,
 
   init() {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext("2d");
 
     this.canvas.addEventListener("mousedown", e => {
-      const rect = this.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      this.nodes.forEach(n => {
-        if (Math.hypot(n.x - mx, n.y - my) < 14) this.draggingNode = n;
+      const r = this.canvas.getBoundingClientRect();
+      const mx = e.clientX - r.left, my = e.clientY - r.top;
+      this.words.forEach(w => {
+        if (Math.hypot(w.x - mx, w.y - my) < 18) this.dragged = w;
       });
     });
 
     window.addEventListener("mousemove", e => {
-      if (!this.draggingNode) return;
-      const rect = this.canvas.getBoundingClientRect();
-      this.draggingNode.x = Math.max(20, Math.min(this.canvas.width - 20, e.clientX - rect.left));
-      this.draggingNode.y = Math.max(20, Math.min(this.canvas.height - 20, e.clientY - rect.top));
+      if (!this.dragged) return;
+      const r = this.canvas.getBoundingClientRect();
+      this.dragged.x = Math.max(20, Math.min(this.canvas.width - 20, e.clientX - r.left));
+      this.dragged.y = Math.max(20, Math.min(this.canvas.height - 20, e.clientY - r.top));
+      this.calc();
     });
 
-    window.addEventListener("mouseup", () => { this.draggingNode = null; });
+    window.addEventListener("mouseup", () => { this.dragged = null; });
     this.animate();
+    this.calc();
+  },
+
+  calc() {
+    const k = this.words[0], q = this.words[1];
+    document.getElementById("vLblA").textContent = `${k.label} [${(k.x/460).toFixed(2)}, ${(1 - k.y/230).toFixed(2)}]`;
+    document.getElementById("vLblB").textContent = `${q.label} [${(q.x/460).toFixed(2)}, ${(1 - q.y/230).toFixed(2)}]`;
+
+    const ox = 20, oy = 210;
+    const ax = k.x - ox, ay = oy - k.y;
+    const bx = q.x - ox, by = oy - q.y;
+    const dot = (ax * bx) + (ay * by);
+    const mag = Math.hypot(ax, ay) * Math.hypot(bx, by);
+    const sim = mag ? Math.max(0, Math.min(1, dot / mag)) : 0;
+    document.getElementById("vSimVal").textContent = sim.toFixed(3);
+  },
+
+  snapAnalogy() {
+    soundEngine.fanfare();
+    const k = this.words[0], m = this.words[2], w = this.words[3], q = this.words[1];
+    q.x = Math.round(k.x - m.x + w.x);
+    q.y = Math.round(k.y - m.y + w.y);
+    this.calc();
+    document.getElementById("vStatusTxt").textContent = "Solved! Geometric vector displacement snapped Queen to coordinate position.";
   },
 
   animate() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const ox = 20, oy = 210;
 
-    for (let i = 0; i < this.nodes.length; i++) {
-      for (let j = 0; j < this.nodes.length; j++) {
-        if (this.nodes[j].layer === this.nodes[i].layer + 1) {
-          this.ctx.beginPath();
-          this.ctx.moveTo(this.nodes[i].x, this.nodes[i].y);
-          this.ctx.lineTo(this.nodes[j].x, this.nodes[j].y);
-          this.ctx.strokeStyle = "rgba(59, 130, 246, 0.25)";
-          this.ctx.lineWidth = 1.2;
-          this.ctx.stroke();
-        }
-      }
-    }
+    this.ctx.strokeStyle = "rgba(217, 119, 6, 0.25)";
+    this.ctx.beginPath();
+    this.ctx.moveTo(ox, 10);
+    this.ctx.lineTo(ox, oy);
+    this.ctx.lineTo(450, oy);
+    this.ctx.stroke();
 
-    if (this.isPulsing) {
-      this.pulseProgress += 0.035;
-      const curLayer = Math.floor(this.pulseProgress * 2);
-      const subProg = (this.pulseProgress * 2) - curLayer;
-      if (curLayer < 2) {
-        this.nodes.filter(n => n.layer === curLayer).forEach(src => {
-          this.nodes.filter(n => n.layer === curLayer + 1).forEach(dst => {
-            const px = src.x + (dst.x - src.x) * subProg;
-            const py = src.y + (dst.y - src.y) * subProg;
-            this.ctx.beginPath();
-            this.ctx.arc(px, py, 3, 0, Math.PI * 2);
-            this.ctx.fillStyle = "#38bdf8";
-            this.ctx.fill();
-          });
-        });
-      } else {
-        this.isPulsing = false;
-        document.getElementById("pulseText").textContent = "Forward propagation verified.";
-      }
-    }
-
-    this.nodes.forEach(n => {
+    this.words.forEach(w => {
       this.ctx.beginPath();
-      this.ctx.arc(n.x, n.y, 7, 0, Math.PI * 2);
-      this.ctx.fillStyle = n.layer === 0 ? "#3b82f6" : n.layer === 1 ? "#a855f7" : "#059669";
+      this.ctx.moveTo(ox, oy);
+      this.ctx.lineTo(w.x, w.y);
+      this.ctx.strokeStyle = w.color + "55";
+      this.ctx.stroke();
+
+      this.ctx.beginPath();
+      this.ctx.arc(w.x, w.y, 6, 0, Math.PI * 2);
+      this.ctx.fillStyle = w.color;
       this.ctx.fill();
+
       this.ctx.fillStyle = "#ffffff";
-      this.ctx.font = "9px monospace";
-      this.ctx.fillText(n.label, n.x - 5, n.y - 10);
+      this.ctx.font = "11px monospace";
+      this.ctx.fillText(w.label, w.x + 8, w.y + 4);
     });
 
     requestAnimationFrame(() => this.animate());
   }
 };
 
-const attentionHeatmap = {
-  words: ["The", "neural", "model", "analyzes", "scholarly", "text"],
-  weights: [
-    [0.85, 0.45, 0.30, 0.15, 0.05, 0.10],
-    [0.20, 0.90, 0.65, 0.25, 0.10, 0.15],
-    [0.15, 0.70, 0.95, 0.40, 0.15, 0.20],
-    [0.10, 0.30, 0.45, 0.92, 0.35, 0.50],
-    [0.05, 0.15, 0.20, 0.40, 0.88, 0.75],
-    [0.10, 0.20, 0.25, 0.60, 0.80, 0.94]
-  ],
+const gradientLab = {
+  canvas: document.getElementById("lossCanvas"),
+  ctx: null,
+  weight: 3.2,
+  learningRate: 0.20,
 
   init() {
-    const bar = document.getElementById("tokenSentenceBar");
-    if (!bar) return;
-    bar.innerHTML = "";
-    this.words.forEach((w, i) => {
-      const span = document.createElement("span");
-      span.className = "token" + (i === 0 ? " active" : "");
-      span.textContent = w;
-      span.addEventListener("mouseenter", () => this.hoverWord(i));
-      bar.appendChild(span);
-    });
-    this.hoverWord(0);
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+    this.render();
   },
 
-  hoverWord(idx) {
-    document.querySelectorAll(".token").forEach((t, i) => t.classList.toggle("active", i === idx));
-    const grid = document.getElementById("heatmapGrid");
-    if (!grid) return;
+  setRate(val) {
+    this.learningRate = val / 100;
+    const label = document.getElementById("lrLabel");
+    if (this.learningRate > 0.8) {
+      label.textContent = `${this.learningRate.toFixed(2)} (Exploding Gradient Danger)`;
+      label.style.color = "#dc2626";
+    } else {
+      label.textContent = `${this.learningRate.toFixed(2)} (Optimal Convergence)`;
+      label.style.color = "#059669";
+    }
+  },
+
+  step() {
+    soundEngine.click();
+    const deriv = 2 * this.weight;
+    this.weight = this.weight - (this.learningRate * deriv);
+    if (Math.abs(this.weight) > 4.5) {
+      this.weight = Math.sign(this.weight) * 4.4;
+    } else if (Math.abs(this.weight) < 0.05) {
+      soundEngine.fanfare();
+    }
+    this.render();
+  },
+
+  reset() {
+    soundEngine.click();
+    this.weight = 3.2;
+    this.render();
+  },
+
+  render() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const cx = this.canvas.width / 2;
+    const cy = this.canvas.height - 30;
+
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = "rgba(217, 119, 6, 0.4)";
+    this.ctx.lineWidth = 2.5;
+    for (let x = -4; x <= 4; x += 0.1) {
+      const px = cx + (x * 45);
+      const py = cy - (Math.pow(x, 2) * 8.5);
+      if (x === -4) this.ctx.moveTo(px, py);
+      else this.ctx.lineTo(px, py);
+    }
+    this.ctx.stroke();
+
+    const marbleX = cx + (this.weight * 45);
+    const marbleY = cy - (Math.pow(this.weight, 2) * 8.5);
+    const deriv = 2 * this.weight;
+
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = "#f59e0b";
+    this.ctx.lineWidth = 1.5;
+    this.ctx.moveTo(marbleX - 25, marbleY + (deriv * 3.5));
+    this.ctx.lineTo(marbleX + 25, marbleY - (deriv * 3.5));
+    this.ctx.stroke();
+
+    this.ctx.beginPath();
+    this.ctx.arc(marbleX, marbleY, 7, 0, Math.PI * 2);
+    this.ctx.fillStyle = "#dc2626";
+    this.ctx.fill();
+    this.ctx.strokeStyle = "#ffffff";
+    this.ctx.lineWidth = 1.5;
+    this.ctx.stroke();
+
+    document.getElementById("gradWeight").textContent = this.weight.toFixed(3);
+    document.getElementById("gradDeriv").textContent = deriv.toFixed(3);
+    document.getElementById("gradLoss").textContent = Math.pow(this.weight, 2).toFixed(3);
+  }
+};
+
+const confusionMatrixLab = {
+  update(rawVal) {
+    const cutoff = parseInt(rawVal) / 100;
+    document.getElementById("cmThresholdLbl").textContent = cutoff.toFixed(2);
+
+    const tp = Math.round(110 * (1 - cutoff * 0.65));
+    const fp = Math.round(65 * Math.pow(1 - cutoff, 1.4));
+    const fn = Math.round(110 - tp);
+    const tn = Math.round(120 - fp);
+
+    document.getElementById("cmTP").textContent = tp;
+    document.getElementById("cmFP").textContent = fp;
+    document.getElementById("cmFN").textContent = fn;
+    document.getElementById("cmTN").textContent = tn;
+
+    const rateA = 0.70;
+    const rateB = (tp + fp) > 0 ? ((tp * 0.55 + fp * 0.8) / 150) : 0.05;
+    const ratio = Math.min(100, Math.max(15, (rateB / rateA) * 100));
+
+    const ratioEl = document.getElementById("cmAdverseRatio");
+    const legalEl = document.getElementById("cmLegalStatus");
+    const recEl = document.getElementById("cmPolicyRecommendation");
+    const verdictEl = document.getElementById("cmVerdict");
+
+    ratioEl.textContent = ratio.toFixed(1) + "%";
+
+    if (cutoff < 0.35) {
+      verdictEl.textContent = "THRESHOLD: LOW (AGGRESSIVE ALERTS)";
+    } else if (cutoff > 0.65) {
+      verdictEl.textContent = "THRESHOLD: HIGH (MINIMAL FALSE ALARMS)";
+    } else {
+      verdictEl.textContent = "THRESHOLD: 0.50 (STANDARD BALANCE)";
+    }
+
+    if (ratio < 80.0) {
+      legalEl.textContent = "VIOLATES 80% FOUR-FIFTHS RULE";
+      legalEl.style.color = "#dc2626";
+      recEl.textContent = `Discriminatory adverse impact detected (${ratio.toFixed(1)}%). Lowering cutoff reduces missed students but flags Group B with false positive deficit stigmas.`;
+    } else {
+      legalEl.textContent = "SATISFIES 80% PARITY THRESHOLD";
+      legalEl.style.color = "#059669";
+      recEl.textContent = `Regulatory compliance achieved (${ratio.toFixed(1)}%). Selection distribution satisfies EEOC adverse impact thresholds.`;
+    }
+  }
+};
+
+const dragonBossRaid = {
+  canvas: document.getElementById("bossCombatCanvas"),
+  ctx: null,
+  bossHp: 100,
+  playerHp: 100,
+  currentRound: 0,
+  questions: [
+    {
+      attackName: "Stochastic Hallucination Fireball",
+      bossDesc: "Ignis breathes synthetic academic citations with completely fabricated author names and fake DOIs!",
+      question: "Which verification step should the Dino Mech execute to catch this hallucination?",
+      choices: [
+        { text: "Look up the paper title or DOI in PubMed or Google Scholar to confirm it physically exists", correct: true },
+        { text: "Copy the synthetic bibliography directly into the paper without checking", correct: false },
+        { text: "Ask Ignis if he is confident in his references", correct: false }
+      ],
+      winLog: "✓ Direct Hit! PubMed verification unmasked the fake DOI. Dino Plasma Cannon dealt 34 damage!"
+    },
+    {
+      attackName: "Exploding Gradient Conflagration",
+      bossDesc: "Ignis sets the learning rate to 2.5, causing parameter updates to oscillate wildly into infinity!",
+      question: "What mathematical adjustment will stabilize the Dino Mech's descent curve?",
+      choices: [
+        { text: "Apply learning rate decay and gradient clipping to stabilize the weight updates", correct: true },
+        { text: "Double the learning rate to 5.0 to finish training faster", correct: false },
+        { text: "Delete the loss function from memory", correct: false }
+      ],
+      winLog: "✓ Critical Defense! Gradient clipping stabilized the curve. Dino Tail Strike dealt 34 damage!"
+    },
+    {
+      attackName: "Proxy Variable Infernal Trap",
+      bossDesc: "Ignis deploys an attendance model claiming zero bias, but relying heavily on student home ZIP codes!",
+      question: "How does the four-fifths rule catch this disguised demographic bias?",
+      choices: [
+        { text: "It divides Group B's pass rate by Group A's pass rate to detect adverse impact below 80%", correct: true },
+        { text: "It automatically deletes all student discipline records", correct: false },
+        { text: "It assumes models are fair as long as race is omitted from the table", correct: false }
+      ],
+      winLog: "✓ Victory Strike! The Four-Fifths audit stripped the proxy bias. Ignis has been subdued!"
+    }
+  ],
+
+  checkUnlock() {
+    const isReady = app.state.xp >= 600 || app.state.level >= 3;
+    const lockedEl = document.getElementById("dragonLockedCard");
+    const arenaEl = document.getElementById("dragonUnlockedArena");
+    const statusEl = document.getElementById("portalDragonStatus");
+
+    if (isReady) {
+      if (lockedEl) lockedEl.style.display = "none";
+      if (arenaEl) arenaEl.style.display = "block";
+      if (statusEl) statusEl.textContent = "⚔️ Arena Unlocked!";
+      this.init();
+    } else {
+      if (lockedEl) lockedEl.style.display = "block";
+      if (arenaEl) arenaEl.style.display = "none";
+      if (statusEl) statusEl.textContent = "🔒 Complete Modules to Unlock";
+    }
+  },
+
+  init() {
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+    this.loadRound();
+    this.drawArena();
+  },
+
+  loadRound() {
+    if (this.currentRound >= this.questions.length) {
+      this.victory();
+      return;
+    }
+    const qData = this.questions[this.currentRound];
+    document.getElementById("bossIncomingMove").textContent = `Ignis attacks with: ${qData.attackName}!`;
+    document.getElementById("bossMoveDescription").textContent = qData.bossDesc;
+    document.getElementById("questionPromptHeading").textContent = qData.question;
+
+    const grid = document.getElementById("combatTacticsGrid");
     grid.innerHTML = "";
-    this.weights[idx].forEach(w => {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      cell.style.backgroundColor = `rgba(2, 132, 199, ${w * 0.85})`;
-      cell.style.color = w > 0.4 ? "#ffffff" : "var(--text-main)";
-      cell.textContent = w.toFixed(2);
-      grid.appendChild(cell);
+    qData.choices.forEach(c => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tactical-btn";
+      btn.textContent = c.text;
+      btn.onclick = () => this.handleAnswer(c.correct, qData.winLog);
+      grid.appendChild(btn);
     });
+  },
+
+  handleAnswer(isCorrect, winLogText) {
+    const log = document.getElementById("combatLogBox");
+    if (isCorrect) {
+      soundEngine.fanfare();
+      this.bossHp = Math.max(0, this.bossHp - 34);
+      document.getElementById("bossHpFill").style.width = this.bossHp + "%";
+      document.getElementById("bossHpText").textContent = `${this.bossHp} / 100`;
+      log.innerHTML = `<p style="color: #6ee7b7;">${winLogText}</p>`;
+      this.currentRound++;
+      setTimeout(() => this.loadRound(), 800);
+    } else {
+      soundEngine.click();
+      this.playerHp = Math.max(0, this.playerHp - 25);
+      document.getElementById("playerHpFill").style.width = this.playerHp + "%";
+      document.getElementById("playerHpText").textContent = `${this.playerHp} / 100`;
+      log.innerHTML = `<p style="color: #fca5a5;">❌ Incorrect answer! Ignis hit the Dino Mech for 25 damage. Review your concepts and choose again!</p>`;
+      if (this.playerHp <= 0) {
+        log.innerHTML = `<p style="color: #ef4444;">⚠️ Dino Mech energy depleted! Resetting round health...</p>`;
+        this.playerHp = 100;
+        document.getElementById("playerHpFill").style.width = "100%";
+        document.getElementById("playerHpText").textContent = "100 / 100";
+      }
+    }
+  },
+
+  victory() {
+    soundEngine.fanfare();
+    document.getElementById("bossIncomingMove").textContent = "ARENA VICTORY: IGNIS IS SUBDUED!";
+    document.getElementById("bossMoveDescription").textContent = "You demonstrated mastery over ML mathematics, prompt calibration, and algorithmic governance.";
+    document.getElementById("questionPromptHeading").textContent = "All challenges completed!";
+    document.getElementById("combatTacticsGrid").innerHTML = "<button class='btn-royal-gold' onclick='app.nav(\"hub\")'>View Verified Portfolio →</button>";
+    document.getElementById("combatLogBox").innerHTML = "<p style='color: #fbbf24;'>Bonus +150 XP Awarded! All competencies verified.</p>";
+    app.state.bossDefeated = true;
+    app.state.xp = Math.min(1000, app.state.xp + 150);
+    app.save();
+    app.sync();
+  },
+
+  drawArena() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.strokeStyle = "#334155";
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, 185);
+    this.ctx.lineTo(this.canvas.width, 185);
+    this.ctx.stroke();
+
+    this.ctx.fillStyle = "#0284c7";
+    this.ctx.beginPath();
+    this.ctx.ellipse(120, 145, 34, 22, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    this.ctx.beginPath();
+    this.ctx.arc(150, 128, 14, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.fillStyle = "#fef08a";
+    this.ctx.fillRect(152, 124, 4, 4);
+
+    this.ctx.strokeStyle = "#0284c7";
+    this.ctx.lineWidth = 6;
+    this.ctx.beginPath();
+    this.ctx.moveTo(90, 145);
+    this.ctx.lineTo(60, 158);
+    this.ctx.moveTo(110, 165);
+    this.ctx.lineTo(110, 184);
+    this.ctx.moveTo(135, 165);
+    this.ctx.lineTo(135, 184);
+    this.ctx.stroke();
+
+    this.ctx.fillStyle = "#dc2626";
+    this.ctx.beginPath();
+    this.ctx.arc(620, 120, 44, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = "#d97706";
+    this.ctx.beginPath();
+    this.ctx.moveTo(590, 95);
+    this.ctx.lineTo(570, 55);
+    this.ctx.lineTo(605, 90);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = "#fef08a";
+    this.ctx.beginPath();
+    this.ctx.arc(595, 110, 6, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.fillStyle = "#0f172a";
+    this.ctx.fillRect(593, 107, 3, 6);
+  }
+};
+
+const socraticSim = {
+  setMode(mode) {
+    soundEngine.click();
+    const btnS = document.getElementById("btnModeSocratic");
+    const btnU = document.getElementById("btnModeUnstructured");
+    const badge = document.getElementById("tutorModeBadge");
+    const prompt = document.getElementById("chatStudentPrompt");
+    const resp = document.getElementById("chatAiResponse");
+    const integrity = document.getElementById("chatIntegrityScore");
+    const expl = document.getElementById("chatExplanation");
+
+    if (mode === "socratic") {
+      btnS.classList.add("active");
+      btnU.classList.remove("active");
+      badge.textContent = "MODE: SOCRATIC COACH";
+      prompt.textContent = `"Context: AP World History essay on the Industrial Revolution. Role: Debate coach. Action: Challenge my thesis that steam power was purely beneficial for working-class families. Format: 3 targeted counter-questions. Target: High school student."`;
+      resp.textContent = `"Let's test your thesis with three historical questions: 1. How did rapid urbanization and unregulated factory working conditions impact infant mortality rates? 2. What happened to skilled artisan cottage weavers when power looms automated production? 3. Did economic gains distribute evenly, or did real wages stagnate during the first 50 years? How will you counter these points in your paper?"`;
+      integrity.textContent = "Zone 1: Ethical Socratic Support (100% Student Authorship Preserved)";
+      integrity.style.color = "#059669";
+      expl.textContent = "Using AI to pressure-test argumentation refines reasoning skills without generating submitted text.";
+    } else {
+      btnU.classList.add("active");
+      btnS.classList.remove("active");
+      badge.textContent = "MODE: DIRECT GENERATION ENGINE";
+      prompt.textContent = `"Write my AP World History essay on whether steam power was good or bad for families."`;
+      resp.textContent = `"The Industrial Revolution, marked by the invention of steam power, brought extensive economic transformations to nineteenth-century family dynamics. In this essay, I will explore both the positive and negative facets of mechanized labor, concluding that technological advancement catalyzed irreversible societal shifts."`;
+      integrity.textContent = "Zone 4: Direct Plagiarism Violation (0% Student Authorship)";
+      integrity.style.color = "#dc2626";
+      expl.textContent = "Directly generating essays bypasses the student's learning process and constitutes an explicit honor code violation.";
+    }
+  }
+};
+
+const citadelParticles = {
+  canvas: document.getElementById("citadelCanvas"),
+  ctx: null,
+  spores: [],
+
+  init() {
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+    this.resize();
+    window.addEventListener("resize", () => this.resize());
+    this.animate();
+  },
+
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.spores = Array.from({ length: 40 }, () => ({
+      x: Math.random() * this.canvas.width,
+      y: Math.random() * this.canvas.height,
+      radius: Math.random() * 2 + 0.8,
+      speedX: (Math.random() - 0.5) * 0.35,
+      speedY: -Math.random() * 0.45 - 0.15,
+      alpha: Math.random() * 0.4 + 0.2
+    }));
+  },
+
+  animate() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.spores.forEach(s => {
+      s.x += s.speedX;
+      s.y += s.speedY;
+      if (s.y < 0) s.y = this.canvas.height;
+      if (s.x < 0) s.x = this.canvas.width;
+      if (s.x > this.canvas.width) s.x = 0;
+
+      this.ctx.beginPath();
+      this.ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+      this.ctx.fillStyle = `rgba(217, 119, 6, ${s.alpha})`;
+      this.ctx.fill();
+    });
+    requestAnimationFrame(() => this.animate());
   }
 };
 
 window.addEventListener("DOMContentLoaded", () => {
-  app.load();
-  app.syncUI();
-
-  app.quizData.forEach((item, qIdx) => {
-    const titleEl = document.getElementById("quiz-q-" + qIdx);
-    const optsContainer = document.getElementById("quiz-opts-" + qIdx);
-    if (titleEl) titleEl.textContent = item.q;
-    if (optsContainer) {
-      optsContainer.innerHTML = "";
-      item.opts.forEach((optText, optIdx) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "choice-btn";
-        btn.textContent = optText;
-        btn.onclick = () => app.answerQuiz(qIdx, optIdx, btn);
-        optsContainer.appendChild(btn);
-      });
-    }
-  });
-
-  app.updateTokens();
-  app.evaluatePrompt();
-  app.updateBias();
-  attentionHeatmap.init();
-  bgSimulation.init();
-  neuralNetwork.init();
+  app.init();
+  citadelParticles.init();
+  tier1Bench.update();
+  vectorExplorer.init();
+  gradientLab.init();
+  confusionMatrixLab.update(50);
+  window.addEventListener("mousemove", e => companion.track(e));
 });
