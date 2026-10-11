@@ -1,639 +1,764 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NEXUS AI | High School Artificial Intelligence Learning Academy</title>
-  <meta name="description" content="An interactive AI learning academy for high school scholars covering neural foundations, practical prompt calibration, and algorithmic ethics.">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+const soundEngine = {
+  ctx: null,
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  },
+  playTone(freq, type, duration) {
+    try {
+      this.init();
+      if (this.ctx.state === "suspended") this.ctx.resume();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + duration);
+    } catch (e) {}
+  },
+  click() { this.playTone(400, "triangle", 0.08); },
+  fanfare() {
+    setTimeout(() => this.playTone(523.25, "sine", 0.15), 0);
+    setTimeout(() => this.playTone(659.25, "sine", 0.20), 100);
+    setTimeout(() => this.playTone(783.99, "sine", 0.35), 200);
+  }
+};
 
-  <!-- Floating Particle Background Canvas -->
-  <canvas id="bgCanvas" aria-hidden="true"></canvas>
+const app = {
+  state: {
+    xp: 0,
+    level: 1,
+    nodes: [false, false, false, false],
+    quizzes: [false, false, false, false, false],
+    bossDefeated: false
+  },
 
-  <!-- Navigation Bar -->
-  <header class="navbar">
-    <div class="brand" onclick="app.navigate('home')">
-      <div class="logo">N</div>
-      <div>
-        <strong>NEXUS AI</strong>
-        <small>DuPont Manual HS • TSA Chapter 104</small>
-      </div>
-    </div>
+  quizData: [
+    { correct: 0, exp: "Correct! The bias shifts the decision threshold independently of inputs." },
+    { correct: 1, exp: "Correct! Orthogonal vectors have a dot product of 0, meaning zero directional correlation." },
+    { correct: 0, exp: "Correct! Dividing by sqrt(d_k) prevents large dot products from causing vanishing gradients in softmax." },
+    { correct: 0, exp: "Correct! 42 / 70 = 60%, which is below the 80% federal limit and shows adverse impact." },
+    { correct: 0, exp: "Correct! Systems that affect student educational opportunities are classified as High Risk." }
+  ],
 
-    <nav class="nav-links" role="tablist">
-      <button type="button" class="nav-btn active" data-tab="home" onclick="app.navigate('home')">Overview</button>
-      <button type="button" class="nav-btn" data-tab="curriculum" onclick="app.navigate('curriculum')">Curriculum</button>
-      <button type="button" class="nav-btn" data-tab="graphics" onclick="app.navigate('graphics')">Interactive Graphics</button>
-      <button type="button" class="nav-btn" data-tab="labs" onclick="app.navigate('labs')">Diagnostic Labs</button>
-      <button type="button" class="nav-btn" data-tab="hub" onclick="app.navigate('hub')">Scholar Hub</button>
-      <button type="button" class="nav-btn" data-tab="refs" onclick="app.navigate('refs')">TSA References</button>
-    </nav>
+  init() {
+    try {
+      const saved = localStorage.getItem("nexus_citadel_state_clean_v3");
+      if (saved) this.state = JSON.parse(saved);
+    } catch (e) {
+      console.warn("Storage fallback initiated", e);
+    }
+    this.sync();
+  },
 
-    <!-- Score & Synapse Vault HUD -->
-    <div class="hud">
-      <div class="vault" title="Collected AI Synapse Cores">
-        <span>CORES:</span>
-        <span id="v0">⚪</span>
-        <span id="v1">⚪</span>
-        <span id="v2">⚪</span>
-        <span id="v3">⚪</span>
-      </div>
-      <button type="button" class="hud-btn bypass" onclick="app.judgeUnlock()" title="Instant unlock for judges">⚡ Judge Bypass</button>
-      <button type="button" class="hud-btn" onclick="app.reset()" title="Reset progress">Reset</button>
-      <div class="score-pill">
-        <span>LVL <strong id="hudLvl">1</strong></span>
-        <span>•</span>
-        <span><strong id="hudXp">0</strong> XP</span>
-      </div>
-    </div>
-  </header>
+  save() {
+    try {
+      localStorage.setItem("nexus_citadel_state_clean_v3", JSON.stringify(this.state));
+    } catch (e) {
+      console.warn("Storage write failure", e);
+    }
+  },
 
-  <!-- Main Viewport Container -->
-  <main class="container">
+  nav(tabId) {
+    soundEngine.click();
+    document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    const page = document.getElementById("tab-" + tabId);
+    if (page) page.classList.add("active");
+    const btn = document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
+    if (btn) btn.classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
-    <!-- 1. OVERVIEW & DESIGN BRIEF -->
-    <section id="tab-home" class="panel active" role="tabpanel">
-      <div class="hero">
-        <div class="hero-text">
-          <span class="badge">TSA HIGH SCHOOL WEBMASTER 2026–2027</span>
-          <h1>Artificial Intelligence,<br><span>Decoded from First Principles.</span></h1>
-          <p>
-            AI tools often seem confusing as most tutorials go over the main mathematical directions. Therefore, <strong>NEXUS AI</strong> is a high school engineering project to explain vector representations in space, writing academic prompts with the acronym C.R.A.F.T., and mathematically calculating demographic bias in school software.
-          </p>
-          <div class="btn-row">
-            <button type="button" class="btn btn-blue" onclick="app.navigate('curriculum')">Start Learning Tracks →</button>
-            <button type="button" class="btn btn-outline" onclick="app.navigate('graphics')">Interactive Graphics</button>
-            <button type="button" class="btn btn-outline" onclick="app.navigate('labs')">Diagnostic Labs</button>
-          </div>
+    if (tabId === "dragon") {
+      dragonBossRaid.checkUnlock();
+    }
+  },
 
-          <!-- Collectible Core 1 -->
-          <div class="core-box" id="core0" onclick="app.collectCore(0)">
-            <span class="core-icon">💎</span>
-            <div>
-              <strong>Discovered Core Ω₁: Foundational Tensor</strong>
-              <small>Click to collect into your vault (+50 XP bonus)</small>
-            </div>
-          </div>
-        </div>
+  collectCore(idx) {
+    if (this.state.nodes[idx]) return;
+    soundEngine.fanfare();
+    this.state.nodes[idx] = true;
+    this.state.xp = Math.min(1000, this.state.xp + 50);
+    this.save();
+    this.sync();
 
-        <!-- Draggable Neural Playground -->
-        <div class="card sim-card">
-          <div class="card-bar">
-            <strong>Interactive Graphic: Neural Topology</strong>
-            <span class="live-dot"></span>
-          </div>
-          <canvas id="neuralCanvas" width="360" height="190"></canvas>
-          <div class="canvas-bar">
-            <button type="button" class="btn-sm" onclick="app.pulseNet()">Fire Forward Pass</button>
-            <small id="pulseText">Click to transmit input activations</small>
-          </div>
-        </div>
-      </div>
-
-      <!-- Roadmap Guide -->
-      <div class="card guide-card">
-        <h3>How to Master This Portal</h3>
-        <p>Follow these 4 structured steps and guidelines to advance your AI literacy and recieve your certification portfolio at the completion:</p>
-        <div class="steps-grid">
-          <div class="step-card" onclick="app.navigate('curriculum')">
-            <span class="step-num">1</span>
-            <strong>Study Concepts</strong>
-            <p>Read focused lessons in Foundations, Tools, and Ethics.</p>
-          </div>
-          <div class="step-card" onclick="app.navigate('graphics')">
-            <span class="step-num">2</span>
-            <strong>Interact with Graphics</strong>
-            <p>Hover over architecture layers and inspect live self-attention heatmaps.</p>
-          </div>
-          <div class="step-card" onclick="app.navigate('labs')">
-            <span class="step-num">3</span>
-            <strong>Run Diagnostic Labs</strong>
-            <p>Test the Tokenizer, C.R.A.F.T. Grader, and Fairness Simulator.</p>
-          </div>
-          <div class="step-card" onclick="app.navigate('hub')">
-            <span class="step-num">4</span>
-            <strong>Claim Diploma</strong>
-            <p>Unlock all 4 badges, reach 1,000 XP, and print your verified certificate.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Module Previews -->
-      <div class="grid-3">
-        <div class="card preview-card" onclick="app.navigate('curriculum')">
-          <span class="preview-icon">🧠</span>
-          <strong>Track 01: Foundations</strong>
-          <p>Matrix dot-products, self-attention, loss minimization, and vector embeddings.</p>
-          <span class="card-link">Explore Track 1 →</span>
-        </div>
-        <div class="card preview-card" onclick="app.navigate('curriculum')">
-          <span class="preview-icon">⚙️</span>
-          <strong>Track 02: Practical Tools</strong>
-          <p>The C.R.A.F.T. prompt framework, reverse-DOI literature verification, and hallucination triage.</p>
-          <span class="card-link">Explore Track 2 →</span>
-        </div>
-        <div class="card preview-card" onclick="app.navigate('curriculum')">
-          <span class="preview-icon">⚖️</span>
-          <strong>Track 03: Ethics & Integrity</strong>
-          <p>Training set skew, the EEOC Four-Fifths rule, FERPA privacy laws, and academic honor codes.</p>
-          <span class="card-link">Explore Track 3 →</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2. CURRICULUM -->
-    <section id="tab-curriculum" class="panel" role="tabpanel">
-      <div class="section-title">
-        <span class="badge">ACADEMIC CURRICULUM // CORE MODULES</span>
-        <h2>Structured Inquiry Tracks & Checkpoints</h2>
-        <p>A 4-part curriculum breaking down artificial intelligence from mathematical foundations to practical research tools and ethical governance.</p>
-      </div>
-
-      <!-- MODULE 1 -->
-      <div class="card module-card">
-        <div class="card-bar">
-          <div>
-            <span class="tag">MODULE 01 // FOUNDATIONS</span>
-            <h3>The Engine Room: Machine Learning Mechanics</h3>
-          </div>
-          <span class="xp-val">+250 XP Available</span>
-        </div>
-        <p class="summary-text">
-          How modern systems transition from manual, rule-based programming to pattern learning using matrix calculations, loss functions, and self-attention.
-        </p>
-
-        <div class="accordion">
-          <!-- Lesson 1.1 -->
-          <details open>
-            <summary><strong>Lesson 1.1: Classical Logic vs. Empirical Optimization</strong></summary>
-            <div class="detail-body">
-              <p>In standard programming classes, we write <strong>deterministic code</strong>: we build explicit logic with <code>if/else</code> statements and loops. If a student writes a program to calculate grades, the computer follows the exact rules we defined. If an unexpected situation occurs that isn't written into the code, the program fails.</p>
-              <p>Real-world problems—like reading cursive handwriting, recognizing human speech, or identifying tumor margins in medical scans—have far too many variations for a programmer to write individual rules. <strong>Machine Learning (ML)</strong> flips this process:</p>
-              <ul>
-                <li><strong>Traditional Coding:</strong> Rules + Data &rarr; Answers</li>
-                <li><strong>Machine Learning:</strong> Data + Target Answers &rarr; Learned Rules</li>
-              </ul>
-              <p>Instead of manually hardcoding every rule, we give the model pairs of training inputs ($X$) and target answers ($Y$). The computer starts with random guess numbers called <strong>weights</strong> ($W$) and <strong>biases</strong> ($b$), calculating an initial guess:</p>
-              <code>prediction = activation_function(W • input + b)</code>
-              <p>Through training iterations (epochs), the computer measures its error and adjusts these weights until its predictions match the real-world data patterns.</p>
-            </div>
-          </details>
-
-          <!-- Lesson 1.2 -->
-          <details>
-            <summary><strong>Lesson 1.2: The Transformer Revolution & Self-Attention</strong></summary>
-            <div class="detail-body">
-              <p>Before modern architectures, language processing used Recurrent Neural Networks (RNNs). RNNs read text one word at a time in order. If an essay had 500 words, by the time the model reached the end, the early sentences had faded from its internal memory. In machine learning, this failure to retain long-term context is known as the <strong>vanishing gradient problem</strong>.</p>
-              <p>The <strong>Transformer</strong> model changed this by reading all words in a sentence at the exact same time in parallel. It uses a mathematical formula called <strong>Scaled Dot-Product Attention</strong>:</p>
-              <code>Attention(Q, K, V) = softmax( (Q • K^T) / √d_k ) • V</code>
-              <p>To understand this intuitively, think of how a student does research in a library:</p>
-              <ul>
-                <li><strong>Query ($Q$):</strong> What you are currently looking for (the current word being processed).</li>
-                <li><strong>Key ($K$):</strong> The index card or title of every other word in the text passage.</li>
-                <li><strong>Value ($V$):</strong> The actual information and meaning contained inside each word.</li>
-              </ul>
-              <p>The dot product $(Q \cdot K^T)$ compares the current word to every other word to assign an importance score. Dividing by $\sqrt{d_k}$ stabilizes the numbers so calculations don't explode in high dimensions. The <code>softmax</code> step converts these scores into percentages that add up to 1.0 (100%), allowing the model to know exactly how much attention each word should pay to every other word.</p>
-            </div>
-          </details>
-
-          <!-- Lesson 1.3 -->
-          <details>
-            <summary><strong>Lesson 1.3: Vector Spaces, Cosine Similarity, & Gradient Descent</strong></summary>
-            <div class="detail-body">
-              <p>Computers cannot read letters; they only understand numbers. To process text, we turn words into lists of numbers called <strong>vector embeddings</strong>. A typical model maps words into 512, 768, or more mathematical dimensions.</p>
-              <p>Words with similar meanings end up close together in this coordinate space. We measure how close two words are using <strong>Cosine Similarity</strong>, which calculates the angle between their vector directions:</p>
-              <code>Cosine Similarity = (A • B) / (||A|| × ||B||)</code>
-              <p>A score of 1.0 means the vectors point in the exact same direction (highly related), while 0 means they are completely unrelated. This geometric structure allows for vector math like:</p>
-              <code>vector("King") - vector("Man") + vector("Woman") ≈ vector("Queen")</code>
-              <p>To train the model, we calculate its mistake using a <strong>Loss Function</strong> (like Categorical Cross-Entropy). Then, <strong>Gradient Descent</strong> uses calculus derivatives to nudge the weights in the direction that lowers the total error for the next attempt.</p>
-            </div>
-          </details>
-        </div>
-
-        <!-- Collectible Core 2 -->
-        <div class="core-box" id="core1" onclick="app.collectCore(1)">
-          <span class="core-icon">⚡</span>
-          <div>
-            <strong>Discovered Core Ω₂: Attention Key Vector</strong>
-            <small>Click to collect into your vault (+50 XP bonus)</small>
-          </div>
-        </div>
-
-        <!-- Quiz 1 -->
-        <div class="quiz-box" id="quiz-block-0">
-          <strong id="quiz-q-0">Loading checkpoint 1...</strong>
-          <div class="quiz-choices" id="quiz-opts-0"></div>
-          <div class="feedback" id="fb0"></div>
-        </div>
-      </div>
-
-      <!-- MODULE 2 -->
-      <div class="card module-card">
-        <div class="card-bar">
-          <div>
-            <span class="tag">MODULE 02 // TOOLS & METHODOLOGY</span>
-            <h3>The Academic Co-Pilot: Prompt Calibration & Fact Verification</h3>
-          </div>
-          <span class="xp-val">+250 XP Available</span>
-        </div>
-        <p class="summary-text">
-          How to turn generative models into effective study partners while filtering out hallucinations and fabricated sources.
-        </p>
-
-        <div class="accordion">
-          <!-- Lesson 2.1 -->
-          <details open>
-            <summary><strong>Lesson 2.1: The C.R.A.F.T. Prompt Engineering Framework</strong></summary>
-            <div class="detail-body">
-              <p>When students type brief, vague prompts like <em>"write an essay about photosynthesis,"</em> the model produces generic, repetitive paragraphs. Because language models are statistical prediction engines, vague questions yield average, uncalibrated answers. The <strong>C.R.A.F.T.</strong> framework adds the necessary boundaries to make responses useful for schoolwork:</p>
-              <ul>
-                <li><strong>C - Context:</strong> Explain the background, subject unit, and specific constraints (e.g., <em>"I am preparing for an AP Biology unit exam on cellular energetics"</em>).</li>
-                <li><strong>R - Role:</strong> Tell the model who to act as (e.g., <em>"Act as an experienced high school science tutor"</em>).</li>
-                <li><strong>Action (A):</strong> Use a clear, direct verb (e.g., <em>"Compare," "Analyze," "Highlight common mistakes"</em>).</li>
-                <li><strong>F - Format:</strong> Request a clean layout (e.g., a 3-column Markdown table or a numbered checklist).</li>
-                <li><strong>Target Audience (T):</strong> Define your grade and skill level (e.g., <em>"For a 10th-grade honors student"</em>).</li>
-              </ul>
-              <div class="prompt-compare">
-                <div class="p-box bad">
-                  <strong>UNSTRUCTURED PROMPT:</strong>
-                  <p><code>"Explain photosynthesis for my biology homework."</code></p>
-                  <small>Outcome: General summary that misses specific exam rubric details.</small>
-                </div>
-                <div class="p-box good">
-                  <strong>C.R.A.F.T. CALIBRATED PROMPT:</strong>
-                  <p><code>"Context: AP Biology unit on plant biochemistry. Role: High school biology tutor. Action: Compare the light-dependent reactions with the Calvin cycle. Format: 3-column table detailing input molecules, output products, and cellular locations. Target Audience: 10th-grade student."</code></p>
-                  <small>Outcome: Organized, detailed, and directly aligned with classroom expectations.</small>
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <!-- Lesson 2.2 -->
-          <details>
-            <summary><strong>Lesson 2.2: Why AI Hallucinates & How to Verify Sources</strong></summary>
-            <div class="detail-body">
-              <p>A common misunderstanding is thinking that an AI model works like a Google search engine. It does not look up real files or read a verified encyclopedia when generating text. Instead, it predicts the next most probable word based on mathematical patterns in its training data.</p>
-              <p>Because its goal is to produce sentences that <em>sound fluent and convincing</em>, it will gladly invent convincing titles, fake author names, and realistic-looking Digital Object Identifiers (DOIs). In computer science, this is called an <strong>AI hallucination</strong>.</p>
-              <h4>The High School Fact-Checking Routine:</h4>
-              <ol>
-                <li><strong>Never trust generated bibliographies:</strong> Never copy citations directly from a chat window into your works cited page.</li>
-                <li><strong>Look up the DOI directly:</strong> Paste the generated title or DOI number into reliable databases like <strong>Google Scholar</strong>, <strong>PubMed</strong>, or <strong>JSTOR</strong> to verify that the study actually exists.</li>
-                <li><strong>Read the real abstract:</strong> Confirm that the real human researchers actually reached the conclusion the AI claims they did.</li>
-              </ol>
-            </div>
-          </details>
-
-          <!-- Lesson 2.3 -->
-          <details>
-            <summary><strong>Lesson 2.3: Socratic Dialogue & Code Troubleshooting</strong></summary>
-            <div class="detail-body">
-              <p>The most responsible way to use an AI model for school is as a <strong>Socratic coach</strong>. Instead of asking it to write a paper or complete an assignment for you, paste in an outline or thesis statement you wrote yourself and instruct it to challenge your reasoning:</p>
-              <code>"Act as a debate coach. Read my thesis statement on renewable energy and give me the three strongest counterarguments an opponent would make."</code>
-              <p>Similarly, for computer science homework, paste your own non-working code and ask the model to explain why a runtime error is happening line by line, rather than having it rewrite the program from scratch. This helps you understand your own code and preserves academic integrity.</p>
-            </div>
-          </details>
-        </div>
-
-        <!-- Quiz 2 -->
-        <div class="quiz-box" id="quiz-block-1">
-          <strong id="quiz-q-1">Loading checkpoint 2...</strong>
-          <div class="quiz-choices" id="quiz-opts-1"></div>
-          <div class="feedback" id="fb1"></div>
-        </div>
-      </div>
-
-      <!-- MODULE 3 -->
-      <div class="card module-card">
-        <div class="card-bar">
-          <div>
-            <span class="tag">MODULE 03 // ETHICS & INTEGRITY</span>
-            <h3>The Ethical Compass: Algorithmic Bias, Privacy, & Honor Codes</h3>
-          </div>
-          <span class="xp-val">+250 XP Available</span>
-        </div>
-        <p class="summary-text">
-          Examine dataset bias math, federal student data privacy laws, and the four zones of academic honesty.
-        </p>
-
-        <div class="accordion">
-          <!-- Lesson 3.1 -->
-          <details open>
-            <summary><strong>Lesson 3.1: Algorithmic Bias & The Four-Fifths (80%) Rule</strong></summary>
-            <div class="detail-body">
-              <p>Computer algorithms do not have feelings or personal grudges, but they faithfully reproduce any imbalance present in their training datasets. If a resume-screening model or school admissions algorithm is trained on past data where one group had fewer opportunities, the model learns that pattern as a statistical fact and rates new applicants from that group lower.</p>
-              <p>To mathematically detect discrimination in automated systems, the federal government (EEOC) uses the <strong>Four-Fifths (80%) Rule</strong> for adverse impact:</p>
-              <code>Selection Ratio = (Pass Rate of Group B) / (Pass Rate of Group A)</code>
-              <p>If the selection rate for a protected demographic is less than <strong>80%</strong> of the rate for the highest group, the tool is flagged for <strong>disparate impact</strong>. For example:</p>
-              <ul>
-                <li>Group A (Majority) Pass Rate: <strong>80%</strong></li>
-                <li>Group B (Protected) Pass Rate: <strong>50%</strong></li>
-                <li>Calculation: $50 / 80 = 0.625$ ($62.5\%$)</li>
-                <li><strong>Result:</strong> Because $62.5\%$ is below the $80\%$ threshold, the system is discriminatory under federal standards, even if its designers did not intend it to be.</li>
-              </ul>
-            </div>
-          </details>
-
-          <!-- Lesson 3.2 -->
-          <details>
-            <summary><strong>Lesson 3.2: Student Privacy & FERPA Guidelines</strong></summary>
-            <div class="detail-body">
-              <p>When you type text into public, free AI chat websites, your inputs are often stored on corporate servers and used to train future model versions. This creates serious data privacy concerns for students and schools.</p>
-              <p>Under the federal <strong>Family Educational Rights and Privacy Act (FERPA)</strong>, schools must protect student educational records. Pasting unredacted student IDs, grade reports, disciplinary notes, or personal medical accommodations into a public AI tool can breach federal privacy laws. Personal information must be scrubbed before running research queries, and school apps should keep user data stored locally in the browser.</p>
-            </div>
-          </details>
-
-          <!-- Lesson 3.3 -->
-          <details>
-            <summary><strong>Lesson 3.3: The Spectrum of Academic Integrity</strong></summary>
-            <div class="detail-body">
-              <p>Using AI in school exists on a clear spectrum, ranging from productive learning aids to clear violations of school honor codes:</p>
-              <ul>
-                <li><strong>Zone 1: Socratic Study Partner (Ethical Support):</strong> Asking AI to explain a math step, test your vocabulary, or generate practice questions. <em>Fully allowed; 100% student authorship.</em></li>
-                <li><strong>Zone 2: Structural Outlining (Allowed with Disclosure):</strong> Using AI to critique your essay outline or identify missing arguments. <em>Allowed if your teacher permits it and you disclose how you used it.</em></li>
-                <li><strong>Zone 3: Heavy Automated Paraphrasing (Compromised):</strong> Running your own rough draft through an AI rewriter to change the wording and bypass plagiarism checkers. <em>Violates academic honesty because it replaces your original voice with synthetic text.</em></li>
-                <li><strong>Zone 4: Direct Plagiarism (Honor Code Violation):</strong> Having an AI generate whole paragraphs, write essays, or invent citations to turn in as your own work. <em>Strict honor code violation subject to disciplinary consequences.</em></li>
-              </ul>
-            </div>
-          </details>
-        </div>
-
-        <!-- Quiz 3 -->
-        <div class="quiz-box" id="quiz-block-2">
-          <strong id="quiz-q-2">Loading checkpoint 3...</strong>
-          <div class="quiz-choices" id="quiz-opts-2"></div>
-          <div class="feedback" id="fb2"></div>
-        </div>
-      </div>
-
-      <!-- MODULE 4: CAPSTONE -->
-      <div class="card module-card capstone-card">
-        <div class="card-bar">
-          <div>
-            <span class="tag">MODULE 04 // CAPSTONE AUDIT</span>
-            <h3>Synthesis Capstone: School AI Systems Auditor</h3>
-          </div>
-          <span class="xp-val">+250 XP Available</span>
-        </div>
-        <p class="summary-text">
-          Apply what you have learned about model mechanics, prompting, and ethics to audit an automated school forecasting algorithm.
-        </p>
-        <div class="quiz-box" id="quiz-block-3">
-          <strong id="quiz-q-3">Loading capstone scenario...</strong>
-          <div class="quiz-choices" id="quiz-opts-3"></div>
-          <div class="feedback" id="fb3"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. INTERACTIVE GRAPHICS -->
-    <section id="tab-graphics" class="panel" role="tabpanel">
-      <div class="section-title">
-        <span class="badge">INTERACTIVE VISUALIZERS</span>
-        <h2>Hardware Schematics & Self-Attention Heatmaps</h2>
-        <p>Hover over words in the heatmap or click SVG schematic layers to inspect active tensor operations.</p>
-      </div>
-
-      <!-- Attention Heatmap -->
-      <div class="card">
-        <div class="card-bar">
-          <strong>Cross-Token Attention Matrix Grid</strong>
-          <span class="tag">SELF-ATTENTION DOT-PRODUCT</span>
-        </div>
-        <p>Hover over any word token in the sentence below to view its dynamically computed attention affinity scores ($w_{ij}$) across surrounding tokens:</p>
-        <div class="token-bar" id="tokenSentenceBar"></div>
-        <div class="heatmap-grid" id="heatmapGrid"></div>
-        <div class="legend-bar">
-          <small>0.00 (Zero Affinity)</small>
-          <div class="grad-line"></div>
-          <small>1.00 (Max Affinity)</small>
-        </div>
-      </div>
-
-      <!-- Inspectable Transformer Pipeline -->
-      <div class="card">
-        <div class="card-bar">
-          <strong>Transformer Architecture Pipeline</strong>
-          <span class="tag">CLICK NODES TO INSPECT</span>
-        </div>
-        <div class="schematic-split">
-          <svg viewBox="0 0 340 380" class="pipeline-svg">
-            <g class="svg-node" onclick="app.inspectNode('embed')">
-              <rect x="20" y="300" width="300" height="45" rx="4"/>
-              <text x="170" y="328">1. Input & Positional Embeddings</text>
-            </g>
-            <line x1="170" y1="300" x2="170" y2="265" class="wire"/>
-            <g class="svg-node active" onclick="app.inspectNode('mha')">
-              <rect x="20" y="215" width="300" height="50" rx="4"/>
-              <text x="170" y="245">2. Multi-Head Self-Attention (Q, K, V)</text>
-            </g>
-            <line x1="170" y1="215" x2="170" y2="180" class="wire"/>
-            <g class="svg-node" onclick="app.inspectNode('norm')">
-              <rect x="20" y="135" width="300" height="45" rx="4"/>
-              <text x="170" y="163">3. Residual Add & Layer Normalization</text>
-            </g>
-            <line x1="170" y1="135" x2="170" y2="100" class="wire"/>
-            <g class="svg-node" onclick="app.inspectNode('ffn')">
-              <rect x="20" y="50" width="300" height="50" rx="4"/>
-              <text x="170" y="80">4. Feed-Forward Neural Network (GELU)</text>
-            </g>
-          </svg>
-          <div class="hud-box-inner">
-            <span class="tag">LAYER TELEMETRY HUD</span>
-            <h4 id="hudTitle">Multi-Head Self-Attention</h4>
-            <div class="math-block" id="hudMath">Attention(Q,K,V) = softmax((Q*K^T)/√d_k)*V</div>
-            <p id="hudDesc">Projects queries, keys, and values into parallel linear subspaces. Computes dot-product compatibility scores across all tokens simultaneously to capture context regardless of sequence distance.</p>
-            <div class="shape-grid">
-              <div><small>INPUT TENSOR</small><strong id="hudIn">[Batch, Seq_Len, 512]</strong></div>
-              <div><small>OUTPUT TENSOR</small><strong id="hudOut">[Batch, Seq_Len, 512]</strong></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. DIAGNOSTIC LABS -->
-    <section id="tab-labs" class="panel" role="tabpanel">
-      <div class="section-title">
-        <span class="badge">HANDS-ON LABORATORY BENCHES</span>
-        <h2>Interactive Diagnostic Laboratories</h2>
-        <p>Every tool below runs client-side inside your browser. Experiment with live sub-word tokenization, evaluate prompt parameters, and audit algorithmic fairness.</p>
-      </div>
-
-      <!-- Collectible Core 3 -->
-      <div class="core-box" id="core2" onclick="app.collectCore(2)">
-        <span class="core-icon">⚖️</span>
+    const banner = document.getElementById("coreBanner" + idx);
+    if (banner) {
+      banner.classList.add("collected");
+      banner.innerHTML = `
+        <div class="core-glyph">✓</div>
         <div>
-          <strong>Discovered Core Ω₃: Demographic Parity Anchor</strong>
-          <small>Click to collect into your vault (+50 XP bonus)</small>
+          <strong>Archon Rune ${idx + 1} Captured!</strong>
+          <small>Tensor node checkpoint secured in vault (+50 XP)</small>
         </div>
-      </div>
+      `;
+    }
+  },
 
-      <!-- Lab 1: Tokenizer -->
-      <div class="card">
-        <div class="card-bar">
-          <strong>1. Byte-Pair Sub-word Tokenizer</strong>
-          <span class="tag">TOKENS: <strong id="tokenCount">0</strong></span>
-        </div>
-        <p>Type any sentence below to watch how natural language is chunked into sub-words and mapped to vocabulary integers:</p>
-        <input type="text" id="tokInput" value="Artificial intelligence models require mathematical calibration to serve scholarship ethically." oninput="app.updateTokens()">
-        <div class="token-tray" id="tokenOutput"></div>
-      </div>
+  quiz(idx, pick, btn) {
+    const data = this.quizData[idx];
+    const fb = document.getElementById("qfb" + idx);
+    const parent = btn.parentElement;
+    parent.querySelectorAll("button").forEach(b => b.disabled = true);
 
-      <!-- Lab 2: C.R.A.F.T. Grader -->
-      <div class="card">
-        <div class="card-bar">
-          <strong>2. The C.R.A.F.T. Prompt Evaluator</strong>
-          <span class="tag">SCORE: <strong id="craftScore">0%</strong></span>
-        </div>
-        <p>Write an academic prompt below. The evaluator scans for Context, Role, Action, Format, and Target Audience:</p>
-        <input type="text" id="craftInput" placeholder="e.g. Act as an AP Biology tutor. Explain mitosis to a 9th grader as a 4-step bullet list." oninput="app.evaluatePrompt()">
-        <div class="pill-row">
-          <span class="check-pill" id="pContext">Context</span>
-          <span class="check-pill" id="pRole">Role</span>
-          <span class="check-pill" id="pAction">Action</span>
-          <span class="check-pill" id="pFormat">Format</span>
-          <span class="check-pill" id="pAudience">Audience</span>
-        </div>
-        <small class="hint-text" id="craftHint">Type a prompt to evaluate its academic structure.</small>
-      </div>
+    if (pick === data.correct) {
+      soundEngine.fanfare();
+      btn.classList.add("correct");
+      fb.style.color = "#6ee7b7";
+      fb.textContent = "✓ " + data.exp;
 
-      <!-- Lab 3: Fairness Slider -->
-      <div class="card">
-        <div class="card-bar">
-          <strong>3. Dataset Disparate Impact & Fairness Simulator</strong>
-          <span class="tag" id="parityBadge">Status: Balanced</span>
-        </div>
-        <p>Adjust the training data balance between Group A and Group B to observe how demographic imbalances alter model confidence:</p>
-        <div class="slider-box">
-          <label>TRAINING DATA RATIO: <strong id="ratioLabel">50% Group A / 50% Group B</strong></label>
-          <input type="range" id="biasSlider" min="10" max="90" value="50" oninput="app.updateBias()">
-        </div>
-        <div class="meter-grid">
-          <div>
-            <small>Group A Model Confidence: <strong id="confA">85%</strong></small>
-            <div class="bar-track"><div class="bar-fill" id="fillA" style="width: 85%;"></div></div>
-          </div>
-          <div>
-            <small>Group B Model Confidence: <strong id="confB">85%</strong></small>
-            <div class="bar-track"><div class="bar-fill" id="fillB" style="width: 85%;"></div></div>
-          </div>
-        </div>
-        <small class="hint-text" id="fairnessHint">Balanced distribution: model outputs achieve demographic parity under the 80% rule.</small>
-      </div>
-    </section>
+      if (!this.state.quizzes[idx]) {
+        this.state.quizzes[idx] = true;
+        this.state.xp = Math.min(1000, this.state.xp + 160);
+        this.save();
+        this.sync();
+      }
+    } else {
+      soundEngine.click();
+      btn.classList.add("wrong");
+      parent.children[data.correct].classList.add("correct");
+      fb.style.color = "#fca5a5";
+      fb.textContent = "Review: " + data.exp;
+    }
+  },
 
-    <!-- 5. SCHOLAR HUB -->
-    <section id="tab-hub" class="panel" role="tabpanel">
-      <div class="section-title">
-        <span class="badge">GAMIFICATION & METRICS</span>
-        <h2>Scholar Dashboard & Credentials</h2>
-        <p>Review your completed milestones, earned badges, and competency rankings stored in your browser.</p>
-      </div>
+  sync() {
+    this.state.level = this.state.xp >= 750 ? 4 : this.state.xp >= 500 ? 3 : this.state.xp >= 250 ? 2 : 1;
+    document.getElementById("hudXp").textContent = this.state.xp;
+    document.getElementById("hubScoreVal").textContent = this.state.xp;
+    document.getElementById("hubLvlVal").textContent = this.state.level;
+    document.getElementById("hubFillBar").style.width = (this.state.xp / 10) + "%";
 
-      <!-- Collectible Core 4 -->
-      <div class="core-box" id="core3" onclick="app.collectCore(3)">
-        <span class="core-icon">🧭</span>
-        <div>
-          <strong>Discovered Core Ω₄: Ethical AI Compass</strong>
-          <small>Click to collect into your vault (+50 XP bonus)</small>
-        </div>
-      </div>
+    const collectedCount = this.state.nodes.filter(Boolean).length;
+    document.getElementById("coreCounter").textContent = `${collectedCount}/4 RUNES`;
 
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-bar">
-            <div>
-              <small>TOTAL REPUTATION</small>
-              <h2><span id="dashXp">0</span> / 1000 XP</h2>
-            </div>
-            <div class="lvl-ring">
-              <span id="dashLvl">1</span>
-              <small>LEVEL</small>
-            </div>
-          </div>
-          <div class="bar-track big-track"><div class="bar-fill" id="dashFill" style="width: 0%;"></div></div>
-          <p id="dashMsg" class="hint-text">Complete module checkpoints or discover hidden Synapse Cores to level up!</p>
-        </div>
+    for (let i = 0; i < 4; i++) {
+      const comp = document.getElementById("comp" + i);
+      if (comp) {
+        comp.textContent = this.state.quizzes[i] ? "100% Verified" : "0%";
+        comp.style.color = this.state.quizzes[i] ? "#d97706" : "#94a3b8";
+      }
+    }
 
-        <div class="card">
-          <h3>Curriculum Competencies</h3>
-          <div class="comp-row"><span>1. AI Foundations</span><strong id="prog0">0%</strong></div>
-          <div class="comp-row"><span>2. Practical Tools (C.R.A.F.T.)</span><strong id="prog1">0%</strong></div>
-          <div class="comp-row"><span>3. Ethics & Privacy</span><strong id="prog2">0%</strong></div>
-          <div class="comp-row"><span>4. Synthesis Capstone Audit</span><strong id="prog3">0%</strong></div>
-        </div>
-      </div>
+    const diploma = document.getElementById("diplomaBanner");
+    if (diploma) diploma.style.display = this.state.xp >= 1000 ? "flex" : "none";
 
-      <!-- Badges Shelf -->
-      <h3 style="margin: 25px 0 15px;">Earned Achievement Badges</h3>
-      <div class="grid-4">
-        <div class="card badge-box locked" id="b0">
-          <div class="badge-icon">🧠</div>
-          <strong>Model Architect</strong>
-          <small>Module 1 Certified</small>
-        </div>
-        <div class="card badge-box locked" id="b1">
-          <div class="badge-icon">⚙️</div>
-          <strong>Prompt Engineer</strong>
-          <small>Module 2 Certified</small>
-        </div>
-        <div class="card badge-box locked" id="b2">
-          <div class="badge-icon">⚖️</div>
-          <strong>Ethics Auditor</strong>
-          <small>Module 3 Certified</small>
-        </div>
-        <div class="card badge-box locked" id="b3">
-          <div class="badge-icon">🚀</div>
-          <strong>AI Innovator</strong>
-          <small>Capstone Verified</small>
-        </div>
-      </div>
+    dragonBossRaid.checkUnlock();
+  },
 
-      <!-- Printable Certificate Banner -->
-      <div class="card cert-banner" id="certBanner" style="display: none;">
-        <div>
-          <h3>🎓 Academic AI Literacy Diploma Earned!</h3>
-          <p>You have earned all 1,000 XP and verified all competencies.</p>
-        </div>
-        <button type="button" class="btn btn-blue" onclick="window.print()">Print Official Certificate</button>
-      </div>
-    </section>
+  judgePass() {
+    soundEngine.fanfare();
+    this.state = {
+      xp: 1000,
+      level: 4,
+      nodes: [true, true, true, true],
+      quizzes: [true, true, true, true, true],
+      bossDefeated: true
+    };
+    this.save();
+    this.sync();
+  },
 
-    <!-- 6. TSA REFERENCES (RULE E) -->
-    <section id="tab-refs" class="panel" role="tabpanel">
-      <div class="section-title">
-        <span class="badge">REGULATION E // REFERENCES & DISCLOSURES</span>
-        <h2>References, Forms & Technology Disclosures</h2>
-        <p>Meeting all National TSA Webmaster documentation requirements (Reference Page and Copyright Rating Criteria).</p>
-      </div>
+  reset() {
+    if (confirm("Reset Citadel workshop progress?")) {
+      this.state = {
+        xp: 0,
+        level: 1,
+        nodes: [false, false, false, false],
+        quizzes: [false, false, false, false, false],
+        bossDefeated: false
+      };
+      this.save();
+      location.reload();
+    }
+  }
+};
 
-      <div class="grid-2">
-        <div class="card">
-          <h3>1. System Architecture (Rule G & H)</h3>
-          <p>Using hand-written HTML5, CSS3, and modern vanilla JavaScript. Some use of AI referencing. <em>Zero use of template engines or site builders (e.g., Wix, Webflow, Squarespace, WordPress).</em> User progress saved in `localStorage` without requiring logins.</p>
-        </div>
-        <div class="card">
-          <h3>2. APA 7th Edition Citations</h3>
-          <ul class="citation-list">
-            <li>Vaswani, A., et al. (2017). <em>Attention Is All You Need</em>. Advances in Neural Information Processing Systems, 30.</li>
-            <li>Floridi, L., & Cowls, J. (2022). <em>A Unified Framework of Five Principles for AI in Society</em>. Harvard Data Science Review.</li>
-            <li>Barocas, S., et al. (2023). <em>Fairness and Machine Learning: Limitations and Opportunities</em>. MIT Press.</li>
-            <li>National Institute of Standards and Technology. (2023). <em>AI Risk Management Framework (AI RMF 1.0)</em>.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+const companion = {
+  speak(who) {
+    soundEngine.click();
+    const princeLines = [
+      "Check out Figure 1.2 below to trace how a perceptron sums inputs before step activation!",
+      "If learning rate alpha is too high in Figure 3.2, gradients overshoot the loss bowl into divergence.",
+      "The dot product calculates cosine similarity between word vectors."
+    ];
+    const princessLines = [
+      "In Figure 2.1, notice how adding and subtracting vectors moves meanings geometrically across the plane!",
+      "Review the C.R.A.F.T. matrix in Figure 2.2 before prompt engineering; constraints keep models factual.",
+      "Always check paper DOIs on real databases before citing AI summaries."
+    ];
 
-  </main>
+    if (who === "prince") {
+      const text = princeLines[Math.floor(Math.random() * princeLines.length)];
+      document.getElementById("princeSpeech").innerHTML = `<strong>Prince Valen:</strong> "${text}"`;
+    } else {
+      const text = princessLines[Math.floor(Math.random() * princessLines.length)];
+      document.getElementById("princessSpeech").innerHTML = `<strong>Princess Aurelia:</strong> "${text}"`;
+    }
+  },
 
-  <!-- Sticky Footer -->
-  <footer class="footer">
-    <div><strong>NEXUS AI</strong> • High School Machine Learning Academy // State TSA Webmaster Entry</div>
-    <div><a href="javascript:void(0)" onclick="app.navigate('refs')">References & Compliance</a></div>
-  </footer>
+  track(e) {
+    const pl = document.getElementById("princeEyeL");
+    const pr = document.getElementById("princeEyeR");
+    const al = document.getElementById("princessEyeL");
+    const ar = document.getElementById("princessEyeR");
+    if (!pl || !pr || !al || !ar) return;
 
-  <script src="script.js"></script>
-</body>
-</html>
+    const r1 = pl.getBoundingClientRect();
+    const a1 = Math.atan2(e.clientY - r1.top, e.clientX - r1.left);
+    pl.setAttribute("cx", 43 + Math.cos(a1) * 1.5);
+    pl.setAttribute("cy", 44 + Math.sin(a1) * 1.5);
+    pr.setAttribute("cx", 57 + Math.cos(a1) * 1.5);
+    pr.setAttribute("cy", 44 + Math.sin(a1) * 1.5);
+
+    const r2 = al.getBoundingClientRect();
+    const a2 = Math.atan2(e.clientY - r2.top, e.clientX - r2.left);
+    al.setAttribute("cx", 43 + Math.cos(a2) * 1.5);
+    al.setAttribute("cy", 44 + Math.sin(a2) * 1.5);
+    ar.setAttribute("cx", 57 + Math.cos(a2) * 1.5);
+    ar.setAttribute("cy", 44 + Math.sin(a2) * 1.5);
+  }
+};
+
+const govBench = {
+  controls: [
+    { title: "1. Training Data Provenance & Lineage", desc: "Auditors verify data collection licenses, scrub student identifiers under FERPA guidelines, and check representation ratios across demographic groups to prevent baked-in historical bias." },
+    { title: "2. Model Card & Architectural Disclosure", desc: "Standardized documentation detailing intended use cases, known failure boundaries, training hyperparameters, evaluation benchmarks, and ethical limitations per NIST AI RMF." },
+    { title: "3. Adversarial Red-Teaming & Stress Tests", desc: "Security teams execute prompt injection attacks, jailbreak simulations, and adversarial tests to verify safety guardrails before deploying software in schools." },
+    { title: "4. Telemetry Drift & Continuous Auditing", desc: "Real-time production monitoring tracking concept drift, prediction variance, disparate impact shifts, and maintaining active counselor override controls." }
+  ],
+  inspect(idx) {
+    soundEngine.click();
+    document.querySelectorAll(".btn-pipeline").forEach((b, i) => b.classList.toggle("active", i === idx));
+    const data = this.controls[idx];
+    document.getElementById("govPipeTitle").textContent = data.title;
+    document.getElementById("govPipeDesc").textContent = data.desc;
+  }
+};
+
+const tier1Bench = {
+  update() {
+    const x = parseInt(document.getElementById("sliderB1X").value) / 10;
+    const w = parseInt(document.getElementById("sliderB1W").value) / 10;
+    const b = parseInt(document.getElementById("sliderB1B").value) / 10;
+
+    document.getElementById("lblB1X").textContent = x.toFixed(1);
+    document.getElementById("lblB1W").textContent = w.toFixed(1);
+    document.getElementById("lblB1B").textContent = b.toFixed(1);
+
+    const sum = (w * x) + b;
+    const fired = sum > 0;
+
+    document.getElementById("b1Sum").textContent = sum.toFixed(2);
+    const outEl = document.getElementById("b1Output");
+    const expEl = document.getElementById("b1Explanation");
+    const statusEl = document.getElementById("b1Status");
+
+    if (fired) {
+      outEl.textContent = "FIRED (1.0)";
+      outEl.style.color = "#059669";
+      statusEl.textContent = "STATE: ACTIVE";
+      statusEl.style.color = "#059669";
+      expEl.textContent = "Neuron fired. Affine calculation exceeds zero threshold.";
+    } else {
+      outEl.textContent = "SUPPRESSED (0.0)";
+      outEl.style.color = "#dc2626";
+      statusEl.textContent = "STATE: INACTIVE";
+      statusEl.style.color = "#dc2626";
+      expEl.textContent = "Neuron suppressed. Affine sum is below zero threshold.";
+    }
+  }
+};
+
+const vectorExplorer = {
+  canvas: document.getElementById("vectorCanvas"),
+  ctx: null,
+  words: [
+    { label: "King", x: 300, y: 65, color: "#38bdf8" },
+    { label: "Queen", x: 280, y: 90, color: "#a855f7" },
+    { label: "Man", x: 190, y: 145, color: "#0284c7" },
+    { label: "Woman", x: 170, y: 170, color: "#ec4899" },
+    { label: "Citadel", x: 90, y: 70, color: "#d97706" }
+  ],
+  dragged: null,
+
+  init() {
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+
+    this.canvas.addEventListener("mousedown", e => {
+      const r = this.canvas.getBoundingClientRect();
+      const mx = e.clientX - r.left, my = e.clientY - r.top;
+      this.words.forEach(w => {
+        if (Math.hypot(w.x - mx, w.y - my) < 18) this.dragged = w;
+      });
+    });
+
+    window.addEventListener("mousemove", e => {
+      if (!this.dragged) return;
+      const r = this.canvas.getBoundingClientRect();
+      this.dragged.x = Math.max(20, Math.min(this.canvas.width - 20, e.clientX - r.left));
+      this.dragged.y = Math.max(20, Math.min(this.canvas.height - 20, e.clientY - r.top));
+      this.calc();
+    });
+
+    window.addEventListener("mouseup", () => { this.dragged = null; });
+    this.animate();
+    this.calc();
+  },
+
+  calc() {
+    const k = this.words[0], q = this.words[1];
+    document.getElementById("vLblA").textContent = `${k.label} [${(k.x/460).toFixed(2)}, ${(1 - k.y/230).toFixed(2)}]`;
+    document.getElementById("vLblB").textContent = `${q.label} [${(q.x/460).toFixed(2)}, ${(1 - q.y/230).toFixed(2)}]`;
+
+    const ox = 20, oy = 210;
+    const ax = k.x - ox, ay = oy - k.y;
+    const bx = q.x - ox, by = oy - q.y;
+    const dot = (ax * bx) + (ay * by);
+    const mag = Math.hypot(ax, ay) * Math.hypot(bx, by);
+    const sim = mag ? Math.max(0, Math.min(1, dot / mag)) : 0;
+    document.getElementById("vSimVal").textContent = sim.toFixed(3);
+  },
+
+  snapAnalogy() {
+    soundEngine.fanfare();
+    const k = this.words[0], m = this.words[2], w = this.words[3], q = this.words[1];
+    q.x = Math.round(k.x - m.x + w.x);
+    q.y = Math.round(k.y - m.y + w.y);
+    this.calc();
+    document.getElementById("vStatusTxt").textContent = "Solved! Geometric vector displacement snapped Queen to coordinate position.";
+  },
+
+  animate() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const ox = 20, oy = 210;
+
+    this.ctx.strokeStyle = "rgba(217, 119, 6, 0.25)";
+    this.ctx.beginPath();
+    this.ctx.moveTo(ox, 10);
+    this.ctx.lineTo(ox, oy);
+    this.ctx.lineTo(450, oy);
+    this.ctx.stroke();
+
+    this.words.forEach(w => {
+      this.ctx.beginPath();
+      this.ctx.moveTo(ox, oy);
+      this.ctx.lineTo(w.x, w.y);
+      this.ctx.strokeStyle = w.color + "55";
+      this.ctx.stroke();
+
+      this.ctx.beginPath();
+      this.ctx.arc(w.x, w.y, 6, 0, Math.PI * 2);
+      this.ctx.fillStyle = w.color;
+      this.ctx.fill();
+
+      this.ctx.fillStyle = "#ffffff";
+      this.ctx.font = "11px monospace";
+      this.ctx.fillText(w.label, w.x + 8, w.y + 4);
+    });
+
+    requestAnimationFrame(() => this.animate());
+  }
+};
+
+const gradientLab = {
+  canvas: document.getElementById("lossCanvas"),
+  ctx: null,
+  weight: 3.2,
+  learningRate: 0.20,
+
+  init() {
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+    this.render();
+  },
+
+  setRate(val) {
+    this.learningRate = val / 100;
+    const label = document.getElementById("lrLabel");
+    if (this.learningRate > 0.8) {
+      label.textContent = `${this.learningRate.toFixed(2)} (Exploding Gradient Danger)`;
+      label.style.color = "#dc2626";
+    } else {
+      label.textContent = `${this.learningRate.toFixed(2)} (Optimal Convergence)`;
+      label.style.color = "#059669";
+    }
+  },
+
+  step() {
+    soundEngine.click();
+    const deriv = 2 * this.weight;
+    this.weight = this.weight - (this.learningRate * deriv);
+    if (Math.abs(this.weight) > 4.5) {
+      this.weight = Math.sign(this.weight) * 4.4;
+    } else if (Math.abs(this.weight) < 0.05) {
+      soundEngine.fanfare();
+    }
+    this.render();
+  },
+
+  reset() {
+    soundEngine.click();
+    this.weight = 3.2;
+    this.render();
+  },
+
+  render() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const cx = this.canvas.width / 2;
+    const cy = this.canvas.height - 30;
+
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = "rgba(217, 119, 6, 0.4)";
+    this.ctx.lineWidth = 2.5;
+    for (let x = -4; x <= 4; x += 0.1) {
+      const px = cx + (x * 45);
+      const py = cy - (Math.pow(x, 2) * 8.5);
+      if (x === -4) this.ctx.moveTo(px, py);
+      else this.ctx.lineTo(px, py);
+    }
+    this.ctx.stroke();
+
+    const marbleX = cx + (this.weight * 45);
+    const marbleY = cy - (Math.pow(this.weight, 2) * 8.5);
+    const deriv = 2 * this.weight;
+
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = "#f59e0b";
+    this.ctx.lineWidth = 1.5;
+    this.ctx.moveTo(marbleX - 25, marbleY + (deriv * 3.5));
+    this.ctx.lineTo(marbleX + 25, marbleY - (deriv * 3.5));
+    this.ctx.stroke();
+
+    this.ctx.beginPath();
+    this.ctx.arc(marbleX, marbleY, 7, 0, Math.PI * 2);
+    this.ctx.fillStyle = "#dc2626";
+    this.ctx.fill();
+    this.ctx.strokeStyle = "#ffffff";
+    this.ctx.lineWidth = 1.5;
+    this.ctx.stroke();
+
+    document.getElementById("gradWeight").textContent = this.weight.toFixed(3);
+    document.getElementById("gradDeriv").textContent = deriv.toFixed(3);
+    document.getElementById("gradLoss").textContent = Math.pow(this.weight, 2).toFixed(3);
+  }
+};
+
+const confusionMatrixLab = {
+  update(rawVal) {
+    const cutoff = parseInt(rawVal) / 100;
+    document.getElementById("cmThresholdLbl").textContent = cutoff.toFixed(2);
+
+    const tp = Math.round(110 * (1 - cutoff * 0.65));
+    const fp = Math.round(65 * Math.pow(1 - cutoff, 1.4));
+    const fn = Math.round(110 - tp);
+    const tn = Math.round(120 - fp);
+
+    document.getElementById("cmTP").textContent = tp;
+    document.getElementById("cmFP").textContent = fp;
+    document.getElementById("cmFN").textContent = fn;
+    document.getElementById("cmTN").textContent = tn;
+
+    const rateA = 0.70;
+    const rateB = (tp + fp) > 0 ? ((tp * 0.55 + fp * 0.8) / 150) : 0.05;
+    const ratio = Math.min(100, Math.max(15, (rateB / rateA) * 100));
+
+    const ratioEl = document.getElementById("cmAdverseRatio");
+    const legalEl = document.getElementById("cmLegalStatus");
+    const recEl = document.getElementById("cmPolicyRecommendation");
+    const verdictEl = document.getElementById("cmVerdict");
+
+    ratioEl.textContent = ratio.toFixed(1) + "%";
+
+    if (cutoff < 0.35) {
+      verdictEl.textContent = "THRESHOLD: LOW (AGGRESSIVE ALERTS)";
+    } else if (cutoff > 0.65) {
+      verdictEl.textContent = "THRESHOLD: HIGH (MINIMAL FALSE ALARMS)";
+    } else {
+      verdictEl.textContent = "THRESHOLD: 0.50 (STANDARD BALANCE)";
+    }
+
+    if (ratio < 80.0) {
+      legalEl.textContent = "VIOLATES 80% FOUR-FIFTHS RULE";
+      legalEl.style.color = "#dc2626";
+      recEl.textContent = `Discriminatory adverse impact detected (${ratio.toFixed(1)}%). Lowering cutoff reduces missed students but flags Group B with false positive deficit stigmas.`;
+    } else {
+      legalEl.textContent = "SATISFIES 80% PARITY THRESHOLD";
+      legalEl.style.color = "#059669";
+      recEl.textContent = `Regulatory compliance achieved (${ratio.toFixed(1)}%). Selection distribution satisfies EEOC adverse impact thresholds.`;
+    }
+  }
+};
+
+const dragonBossRaid = {
+  canvas: document.getElementById("bossCombatCanvas"),
+  ctx: null,
+  bossHp: 100,
+  playerHp: 100,
+  currentRound: 0,
+  questions: [
+    {
+      attackName: "Stochastic Hallucination Fireball",
+      bossDesc: "Ignis breathes synthetic academic citations with completely fabricated author names and fake DOIs!",
+      question: "Which verification step should the Dino Mech execute to catch this hallucination?",
+      choices: [
+        { text: "Look up the paper title or DOI in PubMed or Google Scholar to confirm it physically exists", correct: true },
+        { text: "Copy the synthetic bibliography directly into the paper without checking", correct: false },
+        { text: "Ask Ignis if he is confident in his references", correct: false }
+      ],
+      winLog: "✓ Direct Hit! PubMed verification unmasked the fake DOI. Dino Plasma Cannon dealt 34 damage!"
+    },
+    {
+      attackName: "Exploding Gradient Conflagration",
+      bossDesc: "Ignis sets the learning rate to 2.5, causing parameter updates to oscillate wildly into infinity!",
+      question: "What mathematical adjustment will stabilize the Dino Mech's descent curve?",
+      choices: [
+        { text: "Apply learning rate decay and gradient clipping to stabilize the weight updates", correct: true },
+        { text: "Double the learning rate to 5.0 to finish training faster", correct: false },
+        { text: "Delete the loss function from memory", correct: false }
+      ],
+      winLog: "✓ Critical Defense! Gradient clipping stabilized the curve. Dino Tail Strike dealt 34 damage!"
+    },
+    {
+      attackName: "Proxy Variable Infernal Trap",
+      bossDesc: "Ignis deploys an attendance model claiming zero bias, but relying heavily on student home ZIP codes!",
+      question: "How does the four-fifths rule catch this disguised demographic bias?",
+      choices: [
+        { text: "It divides Group B's pass rate by Group A's pass rate to detect adverse impact below 80%", correct: true },
+        { text: "It automatically deletes all student discipline records", correct: false },
+        { text: "It assumes models are fair as long as race is omitted from the table", correct: false }
+      ],
+      winLog: "✓ Victory Strike! The Four-Fifths audit stripped the proxy bias. Ignis has been subdued!"
+    }
+  ],
+
+  checkUnlock() {
+    const isReady = app.state.xp >= 600 || app.state.level >= 3;
+    const lockedEl = document.getElementById("dragonLockedCard");
+    const arenaEl = document.getElementById("dragonUnlockedArena");
+    const statusEl = document.getElementById("portalDragonStatus");
+
+    if (isReady) {
+      if (lockedEl) lockedEl.style.display = "none";
+      if (arenaEl) arenaEl.style.display = "block";
+      if (statusEl) statusEl.textContent = "⚔️ Arena Unlocked!";
+      this.init();
+    } else {
+      if (lockedEl) lockedEl.style.display = "block";
+      if (arenaEl) arenaEl.style.display = "none";
+      if (statusEl) statusEl.textContent = "🔒 Complete Modules to Unlock";
+    }
+  },
+
+  init() {
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+    this.loadRound();
+    this.drawArena();
+  },
+
+  loadRound() {
+    if (this.currentRound >= this.questions.length) {
+      this.victory();
+      return;
+    }
+    const qData = this.questions[this.currentRound];
+    document.getElementById("bossIncomingMove").textContent = `Ignis attacks with: ${qData.attackName}!`;
+    document.getElementById("bossMoveDescription").textContent = qData.bossDesc;
+    document.getElementById("questionPromptHeading").textContent = qData.question;
+
+    const grid = document.getElementById("combatTacticsGrid");
+    grid.innerHTML = "";
+    qData.choices.forEach(c => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tactical-btn";
+      btn.textContent = c.text;
+      btn.onclick = () => this.handleAnswer(c.correct, qData.winLog);
+      grid.appendChild(btn);
+    });
+  },
+
+  handleAnswer(isCorrect, winLogText) {
+    const log = document.getElementById("combatLogBox");
+    if (isCorrect) {
+      soundEngine.fanfare();
+      this.bossHp = Math.max(0, this.bossHp - 34);
+      document.getElementById("bossHpFill").style.width = this.bossHp + "%";
+      document.getElementById("bossHpText").textContent = `${this.bossHp} / 100`;
+      log.innerHTML = `<p style="color: #6ee7b7;">${winLogText}</p>`;
+      this.currentRound++;
+      setTimeout(() => this.loadRound(), 800);
+    } else {
+      soundEngine.click();
+      this.playerHp = Math.max(0, this.playerHp - 25);
+      document.getElementById("playerHpFill").style.width = this.playerHp + "%";
+      document.getElementById("playerHpText").textContent = `${this.playerHp} / 100`;
+      log.innerHTML = `<p style="color: #fca5a5;">❌ Incorrect answer! Ignis hit the Dino Mech for 25 damage. Review your concepts and choose again!</p>`;
+      if (this.playerHp <= 0) {
+        log.innerHTML = `<p style="color: #ef4444;">⚠️ Dino Mech energy depleted! Resetting round health...</p>`;
+        this.playerHp = 100;
+        document.getElementById("playerHpFill").style.width = "100%";
+        document.getElementById("playerHpText").textContent = "100 / 100";
+      }
+    }
+  },
+
+  victory() {
+    soundEngine.fanfare();
+    document.getElementById("bossIncomingMove").textContent = "ARENA VICTORY: IGNIS IS SUBDUED!";
+    document.getElementById("bossMoveDescription").textContent = "You demonstrated mastery over ML mathematics, prompt calibration, and algorithmic governance.";
+    document.getElementById("questionPromptHeading").textContent = "All challenges completed!";
+    document.getElementById("combatTacticsGrid").innerHTML = "<button class='btn-royal-gold' onclick='app.nav(\"hub\")'>View Verified Portfolio →</button>";
+    document.getElementById("combatLogBox").innerHTML = "<p style='color: #fbbf24;'>Bonus +150 XP Awarded! All competencies verified.</p>";
+    app.state.bossDefeated = true;
+    app.state.xp = Math.min(1000, app.state.xp + 150);
+    app.save();
+    app.sync();
+  },
+
+  drawArena() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.strokeStyle = "#334155";
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, 185);
+    this.ctx.lineTo(this.canvas.width, 185);
+    this.ctx.stroke();
+
+    this.ctx.fillStyle = "#0284c7";
+    this.ctx.beginPath();
+    this.ctx.ellipse(120, 145, 34, 22, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    this.ctx.beginPath();
+    this.ctx.arc(150, 128, 14, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.fillStyle = "#fef08a";
+    this.ctx.fillRect(152, 124, 4, 4);
+
+    this.ctx.strokeStyle = "#0284c7";
+    this.ctx.lineWidth = 6;
+    this.ctx.beginPath();
+    this.ctx.moveTo(90, 145);
+    this.ctx.lineTo(60, 158);
+    this.ctx.moveTo(110, 165);
+    this.ctx.lineTo(110, 184);
+    this.ctx.moveTo(135, 165);
+    this.ctx.lineTo(135, 184);
+    this.ctx.stroke();
+
+    this.ctx.fillStyle = "#dc2626";
+    this.ctx.beginPath();
+    this.ctx.arc(620, 120, 44, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = "#d97706";
+    this.ctx.beginPath();
+    this.ctx.moveTo(590, 95);
+    this.ctx.lineTo(570, 55);
+    this.ctx.lineTo(605, 90);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = "#fef08a";
+    this.ctx.beginPath();
+    this.ctx.arc(595, 110, 6, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.fillStyle = "#0f172a";
+    this.ctx.fillRect(593, 107, 3, 6);
+  }
+};
+
+const socraticSim = {
+  setMode(mode) {
+    soundEngine.click();
+    const btnS = document.getElementById("btnModeSocratic");
+    const btnU = document.getElementById("btnModeUnstructured");
+    const badge = document.getElementById("tutorModeBadge");
+    const prompt = document.getElementById("chatStudentPrompt");
+    const resp = document.getElementById("chatAiResponse");
+    const integrity = document.getElementById("chatIntegrityScore");
+    const expl = document.getElementById("chatExplanation");
+
+    if (mode === "socratic") {
+      btnS.classList.add("active");
+      btnU.classList.remove("active");
+      badge.textContent = "MODE: SOCRATIC COACH";
+      prompt.textContent = `"Context: AP World History essay on the Industrial Revolution. Role: Debate coach. Action: Challenge my thesis that steam power was purely beneficial for working-class families. Format: 3 targeted counter-questions. Target: High school student."`;
+      resp.textContent = `"Let's test your thesis with three historical questions: 1. How did rapid urbanization and unregulated factory working conditions impact infant mortality rates? 2. What happened to skilled artisan cottage weavers when power looms automated production? 3. Did economic gains distribute evenly, or did real wages stagnate during the first 50 years? How will you counter these points in your paper?"`;
+      integrity.textContent = "Zone 1: Ethical Socratic Support (100% Student Authorship Preserved)";
+      integrity.style.color = "#059669";
+      expl.textContent = "Using AI to pressure-test argumentation refines reasoning skills without generating submitted text.";
+    } else {
+      btnU.classList.add("active");
+      btnS.classList.remove("active");
+      badge.textContent = "MODE: DIRECT GENERATION ENGINE";
+      prompt.textContent = `"Write my AP World History essay on whether steam power was good or bad for families."`;
+      resp.textContent = `"The Industrial Revolution, marked by the invention of steam power, brought extensive economic transformations to nineteenth-century family dynamics. In this essay, I will explore both the positive and negative facets of mechanized labor, concluding that technological advancement catalyzed irreversible societal shifts."`;
+      integrity.textContent = "Zone 4: Direct Plagiarism Violation (0% Student Authorship)";
+      integrity.style.color = "#dc2626";
+      expl.textContent = "Directly generating essays bypasses the student's learning process and constitutes an explicit honor code violation.";
+    }
+  }
+};
+
+const citadelParticles = {
+  canvas: document.getElementById("citadelCanvas"),
+  ctx: null,
+  spores: [],
+
+  init() {
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+    this.resize();
+    window.addEventListener("resize", () => this.resize());
+    this.animate();
+  },
+
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.spores = Array.from({ length: 40 }, () => ({
+      x: Math.random() * this.canvas.width,
+      y: Math.random() * this.canvas.height,
+      radius: Math.random() * 2 + 0.8,
+      speedX: (Math.random() - 0.5) * 0.35,
+      speedY: -Math.random() * 0.45 - 0.15,
+      alpha: Math.random() * 0.4 + 0.2
+    }));
+  },
+
+  animate() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.spores.forEach(s => {
+      s.x += s.speedX;
+      s.y += s.speedY;
+      if (s.y < 0) s.y = this.canvas.height;
+      if (s.x < 0) s.x = this.canvas.width;
+      if (s.x > this.canvas.width) s.x = 0;
+
+      this.ctx.beginPath();
+      this.ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+      this.ctx.fillStyle = `rgba(217, 119, 6, ${s.alpha})`;
+      this.ctx.fill();
+    });
+    requestAnimationFrame(() => this.animate());
+  }
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  app.init();
+  citadelParticles.init();
+  tier1Bench.update();
+  vectorExplorer.init();
+  gradientLab.init();
+  confusionMatrixLab.update(50);
+  window.addEventListener("mousemove", e => companion.track(e));
+});
