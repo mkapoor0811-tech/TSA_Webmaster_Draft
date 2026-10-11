@@ -1,764 +1,975 @@
-const soundEngine = {
-  ctx: null,
-  init() {
-    if (!this.ctx) {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-  },
-  playTone(freq, type, duration) {
-    try {
-      this.init();
-      if (this.ctx.state === "suspended") this.ctx.resume();
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + duration);
-    } catch (e) {}
-  },
-  click() { this.playTone(400, "triangle", 0.08); },
-  fanfare() {
-    setTimeout(() => this.playTone(523.25, "sine", 0.15), 0);
-    setTimeout(() => this.playTone(659.25, "sine", 0.20), 100);
-    setTimeout(() => this.playTone(783.99, "sine", 0.35), 200);
-  }
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS CITADEL // Machine Learning & Governance Lab</title>
+  <meta name="description" content="An interactive fortress AI laboratory, algorithmic ethics audit bench, and tactical dragon boss battle.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-const app = {
-  state: {
-    xp: 0,
-    level: 1,
-    nodes: [false, false, false, false],
-    quizzes: [false, false, false, false, false],
-    bossDefeated: false
-  },
+  <canvas id="citadelCanvas" aria-hidden="true"></canvas>
 
-  quizData: [
-    { correct: 0, exp: "Correct! The bias shifts the decision threshold independently of inputs." },
-    { correct: 1, exp: "Correct! Orthogonal vectors have a dot product of 0, meaning zero directional correlation." },
-    { correct: 0, exp: "Correct! Dividing by sqrt(d_k) prevents large dot products from causing vanishing gradients in softmax." },
-    { correct: 0, exp: "Correct! 42 / 70 = 60%, which is below the 80% federal limit and shows adverse impact." },
-    { correct: 0, exp: "Correct! Systems that affect student educational opportunities are classified as High Risk." }
-  ],
+  <header class="navbar">
+    <div class="brand" onclick="app.nav('home')">
+      <div class="brand-crest">
+        <svg viewBox="0 0 36 36" class="crest-svg">
+          <path d="M6,6 L10,6 L10,10 L14,6 L18,6 L22,6 L26,10 L26,6 L30,6 L30,22 C30,28 18,34 18,34 C18,34 6,28 6,22 Z" fill="#1e293b" stroke="#d97706" stroke-width="2"/>
+          <circle cx="18" cy="18" r="4" fill="#f59e0b"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">NEXUS CITADEL <span class="sub-badge">AI LAB</span></div>
+        <small class="brand-sub">Machine Learning & Governance</small>
+      </div>
+    </div>
 
-  init() {
-    try {
-      const saved = localStorage.getItem("nexus_citadel_state_clean_v3");
-      if (saved) this.state = JSON.parse(saved);
-    } catch (e) {
-      console.warn("Storage fallback initiated", e);
-    }
-    this.sync();
-  },
+    <nav class="nav-links">
+      <button type="button" class="nav-btn active" data-tab="home" onclick="app.nav('home')">Citadel</button>
+      <button type="button" class="nav-btn" data-tab="curriculum" onclick="app.nav('curriculum')">Grimoire Tracks</button>
+      <button type="button" class="nav-btn" data-tab="governance" onclick="app.nav('governance')">AI Governance</button>
+      <button type="button" class="nav-btn" data-tab="sandboxes" onclick="app.nav('sandboxes')">Alchemical Benches</button>
+      <button type="button" class="nav-btn" data-tab="dragon" onclick="app.nav('dragon')">Trial of Ignis</button>
+      <button type="button" class="nav-btn" data-tab="socratic" onclick="app.nav('socratic')">Royal Debate</button>
+      <button type="button" class="nav-btn" data-tab="capstone" onclick="app.nav('capstone')">Citadel Audit</button>
+      <button type="button" class="nav-btn" data-tab="hub" onclick="app.nav('hub')">Knight Hub</button>
+      <button type="button" class="nav-btn" data-tab="refs" onclick="app.nav('refs')">References</button>
+    </nav>
 
-  save() {
-    try {
-      localStorage.setItem("nexus_citadel_state_clean_v3", JSON.stringify(this.state));
-    } catch (e) {
-      console.warn("Storage write failure", e);
-    }
-  },
+    <div class="nav-controls">
+      <div class="pill-tracker" title="Captured Runes">
+        <span class="rune-glyph">✧</span>
+        <span id="coreCounter">0/4 RUNES</span>
+      </div>
+      <div class="score-chip"><span id="hudXp">0</span> XP</div>
+      <button type="button" class="btn-fastpass" onclick="app.judgePass()" title="Instant unlock for evaluators">⚡ Fast-Pass</button>
+      <button type="button" class="btn-reset" onclick="app.reset()" title="Reset session state">Reset</button>
+    </div>
+  </header>
 
-  nav(tabId) {
-    soundEngine.click();
-    document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-    const page = document.getElementById("tab-" + tabId);
-    if (page) page.classList.add("active");
-    const btn = document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
-    if (btn) btn.classList.add("active");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  <main class="container-body">
 
-    if (tabId === "dragon") {
-      dragonBossRaid.checkUnlock();
-    }
-  },
+    <section id="tab-home" class="tab-page active">
+      <div class="castle-hero">
+        <div class="night-moon"></div>
+        <div class="ambient-glow glow-1"></div>
+        <div class="ambient-glow glow-2"></div>
 
-  collectCore(idx) {
-    if (this.state.nodes[idx]) return;
-    soundEngine.fanfare();
-    this.state.nodes[idx] = true;
-    this.state.xp = Math.min(1000, this.state.xp + 50);
-    this.save();
-    this.sync();
+        <svg class="battlement-top-svg" viewBox="0 0 1440 160" preserveAspectRatio="none">
+          <path d="M0,0 L1440,0 L1440,50 L1380,50 L1380,20 L1320,20 L1320,50 L1200,50 L1200,20 L1140,20 L1140,50 L1020,50 L1020,20 L960,20 L960,50 L840,50 L840,20 L780,20 L780,50 L660,50 L660,20 L600,20 L600,50 L480,50 L480,20 L420,20 L420,50 L300,50 L300,20 L240,20 L240,50 L120,50 L120,20 L60,20 L60,50 L0,50 Z" fill="#0f172a"/>
+          <path d="M0,50 Q720,100 1440,50 L1440,80 Q720,130 0,80 Z" fill="#1e293b" opacity="0.6"/>
+        </svg>
 
-    const banner = document.getElementById("coreBanner" + idx);
-    if (banner) {
-      banner.classList.add("collected");
-      banner.innerHTML = `
-        <div class="core-glyph">✓</div>
-        <div>
-          <strong>Archon Rune ${idx + 1} Captured!</strong>
-          <small>Tensor node checkpoint secured in vault (+50 XP)</small>
+        <div class="companion-post post-left" onclick="companion.speak('prince')">
+          <div class="archon-avatar">
+            <svg viewBox="0 0 100 120" class="archon-svg">
+              <polygon points="35,28 42,16 50,24 58,16 65,28" fill="#d97706" stroke="#92400e" stroke-width="2"/>
+              <circle cx="50" cy="46" r="22" fill="#fed7aa"/>
+              <path d="M28,38 C32,20 68,20 72,38 C64,28 36,28 28,38 Z" fill="#1e293b"/>
+              <ellipse cx="43" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <ellipse cx="57" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <circle cx="43" cy="44" r="2.5" fill="#2563eb" id="princeEyeL"/>
+              <circle cx="57" cy="44" r="2.5" fill="#2563eb" id="princeEyeR"/>
+              <path d="M44,55 Q50,60 56,55" stroke="#78350f" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M30,68 L70,68 L78,110 L22,110 Z" fill="#3b82f6"/>
+              <polygon points="20,68 34,68 28,88" fill="#d97706"/>
+              <polygon points="80,68 66,68 72,88" fill="#d97706"/>
+            </svg>
+          </div>
+          <div class="archon-speech-tag" id="princeSpeech">
+            <strong>Prince Valen:</strong> "Look upon our battlements! Learn the math of neural networks before stepping into the arena."
+          </div>
         </div>
-      `;
-    }
-  },
-
-  quiz(idx, pick, btn) {
-    const data = this.quizData[idx];
-    const fb = document.getElementById("qfb" + idx);
-    const parent = btn.parentElement;
-    parent.querySelectorAll("button").forEach(b => b.disabled = true);
-
-    if (pick === data.correct) {
-      soundEngine.fanfare();
-      btn.classList.add("correct");
-      fb.style.color = "#6ee7b7";
-      fb.textContent = "✓ " + data.exp;
-
-      if (!this.state.quizzes[idx]) {
-        this.state.quizzes[idx] = true;
-        this.state.xp = Math.min(1000, this.state.xp + 160);
-        this.save();
-        this.sync();
-      }
-    } else {
-      soundEngine.click();
-      btn.classList.add("wrong");
-      parent.children[data.correct].classList.add("correct");
-      fb.style.color = "#fca5a5";
-      fb.textContent = "Review: " + data.exp;
-    }
-  },
-
-  sync() {
-    this.state.level = this.state.xp >= 750 ? 4 : this.state.xp >= 500 ? 3 : this.state.xp >= 250 ? 2 : 1;
-    document.getElementById("hudXp").textContent = this.state.xp;
-    document.getElementById("hubScoreVal").textContent = this.state.xp;
-    document.getElementById("hubLvlVal").textContent = this.state.level;
-    document.getElementById("hubFillBar").style.width = (this.state.xp / 10) + "%";
-
-    const collectedCount = this.state.nodes.filter(Boolean).length;
-    document.getElementById("coreCounter").textContent = `${collectedCount}/4 RUNES`;
-
-    for (let i = 0; i < 4; i++) {
-      const comp = document.getElementById("comp" + i);
-      if (comp) {
-        comp.textContent = this.state.quizzes[i] ? "100% Verified" : "0%";
-        comp.style.color = this.state.quizzes[i] ? "#d97706" : "#94a3b8";
-      }
-    }
-
-    const diploma = document.getElementById("diplomaBanner");
-    if (diploma) diploma.style.display = this.state.xp >= 1000 ? "flex" : "none";
-
-    dragonBossRaid.checkUnlock();
-  },
-
-  judgePass() {
-    soundEngine.fanfare();
-    this.state = {
-      xp: 1000,
-      level: 4,
-      nodes: [true, true, true, true],
-      quizzes: [true, true, true, true, true],
-      bossDefeated: true
-    };
-    this.save();
-    this.sync();
-  },
-
-  reset() {
-    if (confirm("Reset Citadel workshop progress?")) {
-      this.state = {
-        xp: 0,
-        level: 1,
-        nodes: [false, false, false, false],
-        quizzes: [false, false, false, false, false],
-        bossDefeated: false
-      };
-      this.save();
-      location.reload();
-    }
-  }
-};
-
-const companion = {
-  speak(who) {
-    soundEngine.click();
-    const princeLines = [
-      "Check out Figure 1.2 below to trace how a perceptron sums inputs before step activation!",
-      "If learning rate alpha is too high in Figure 3.2, gradients overshoot the loss bowl into divergence.",
-      "The dot product calculates cosine similarity between word vectors."
-    ];
-    const princessLines = [
-      "In Figure 2.1, notice how adding and subtracting vectors moves meanings geometrically across the plane!",
-      "Review the C.R.A.F.T. matrix in Figure 2.2 before prompt engineering; constraints keep models factual.",
-      "Always check paper DOIs on real databases before citing AI summaries."
-    ];
-
-    if (who === "prince") {
-      const text = princeLines[Math.floor(Math.random() * princeLines.length)];
-      document.getElementById("princeSpeech").innerHTML = `<strong>Prince Valen:</strong> "${text}"`;
-    } else {
-      const text = princessLines[Math.floor(Math.random() * princessLines.length)];
-      document.getElementById("princessSpeech").innerHTML = `<strong>Princess Aurelia:</strong> "${text}"`;
-    }
-  },
-
-  track(e) {
-    const pl = document.getElementById("princeEyeL");
-    const pr = document.getElementById("princeEyeR");
-    const al = document.getElementById("princessEyeL");
-    const ar = document.getElementById("princessEyeR");
-    if (!pl || !pr || !al || !ar) return;
-
-    const r1 = pl.getBoundingClientRect();
-    const a1 = Math.atan2(e.clientY - r1.top, e.clientX - r1.left);
-    pl.setAttribute("cx", 43 + Math.cos(a1) * 1.5);
-    pl.setAttribute("cy", 44 + Math.sin(a1) * 1.5);
-    pr.setAttribute("cx", 57 + Math.cos(a1) * 1.5);
-    pr.setAttribute("cy", 44 + Math.sin(a1) * 1.5);
-
-    const r2 = al.getBoundingClientRect();
-    const a2 = Math.atan2(e.clientY - r2.top, e.clientX - r2.left);
-    al.setAttribute("cx", 43 + Math.cos(a2) * 1.5);
-    al.setAttribute("cy", 44 + Math.sin(a2) * 1.5);
-    ar.setAttribute("cx", 57 + Math.cos(a2) * 1.5);
-    ar.setAttribute("cy", 44 + Math.sin(a2) * 1.5);
-  }
-};
-
-const govBench = {
-  controls: [
-    { title: "1. Training Data Provenance & Lineage", desc: "Auditors verify data collection licenses, scrub student identifiers under FERPA guidelines, and check representation ratios across demographic groups to prevent baked-in historical bias." },
-    { title: "2. Model Card & Architectural Disclosure", desc: "Standardized documentation detailing intended use cases, known failure boundaries, training hyperparameters, evaluation benchmarks, and ethical limitations per NIST AI RMF." },
-    { title: "3. Adversarial Red-Teaming & Stress Tests", desc: "Security teams execute prompt injection attacks, jailbreak simulations, and adversarial tests to verify safety guardrails before deploying software in schools." },
-    { title: "4. Telemetry Drift & Continuous Auditing", desc: "Real-time production monitoring tracking concept drift, prediction variance, disparate impact shifts, and maintaining active counselor override controls." }
-  ],
-  inspect(idx) {
-    soundEngine.click();
-    document.querySelectorAll(".btn-pipeline").forEach((b, i) => b.classList.toggle("active", i === idx));
-    const data = this.controls[idx];
-    document.getElementById("govPipeTitle").textContent = data.title;
-    document.getElementById("govPipeDesc").textContent = data.desc;
-  }
-};
-
-const tier1Bench = {
-  update() {
-    const x = parseInt(document.getElementById("sliderB1X").value) / 10;
-    const w = parseInt(document.getElementById("sliderB1W").value) / 10;
-    const b = parseInt(document.getElementById("sliderB1B").value) / 10;
-
-    document.getElementById("lblB1X").textContent = x.toFixed(1);
-    document.getElementById("lblB1W").textContent = w.toFixed(1);
-    document.getElementById("lblB1B").textContent = b.toFixed(1);
-
-    const sum = (w * x) + b;
-    const fired = sum > 0;
-
-    document.getElementById("b1Sum").textContent = sum.toFixed(2);
-    const outEl = document.getElementById("b1Output");
-    const expEl = document.getElementById("b1Explanation");
-    const statusEl = document.getElementById("b1Status");
-
-    if (fired) {
-      outEl.textContent = "FIRED (1.0)";
-      outEl.style.color = "#059669";
-      statusEl.textContent = "STATE: ACTIVE";
-      statusEl.style.color = "#059669";
-      expEl.textContent = "Neuron fired. Affine calculation exceeds zero threshold.";
-    } else {
-      outEl.textContent = "SUPPRESSED (0.0)";
-      outEl.style.color = "#dc2626";
-      statusEl.textContent = "STATE: INACTIVE";
-      statusEl.style.color = "#dc2626";
-      expEl.textContent = "Neuron suppressed. Affine sum is below zero threshold.";
-    }
-  }
-};
-
-const vectorExplorer = {
-  canvas: document.getElementById("vectorCanvas"),
-  ctx: null,
-  words: [
-    { label: "King", x: 300, y: 65, color: "#38bdf8" },
-    { label: "Queen", x: 280, y: 90, color: "#a855f7" },
-    { label: "Man", x: 190, y: 145, color: "#0284c7" },
-    { label: "Woman", x: 170, y: 170, color: "#ec4899" },
-    { label: "Citadel", x: 90, y: 70, color: "#d97706" }
-  ],
-  dragged: null,
-
-  init() {
-    if (!this.canvas) return;
-    this.ctx = this.canvas.getContext("2d");
-
-    this.canvas.addEventListener("mousedown", e => {
-      const r = this.canvas.getBoundingClientRect();
-      const mx = e.clientX - r.left, my = e.clientY - r.top;
-      this.words.forEach(w => {
-        if (Math.hypot(w.x - mx, w.y - my) < 18) this.dragged = w;
-      });
-    });
-
-    window.addEventListener("mousemove", e => {
-      if (!this.dragged) return;
-      const r = this.canvas.getBoundingClientRect();
-      this.dragged.x = Math.max(20, Math.min(this.canvas.width - 20, e.clientX - r.left));
-      this.dragged.y = Math.max(20, Math.min(this.canvas.height - 20, e.clientY - r.top));
-      this.calc();
-    });
-
-    window.addEventListener("mouseup", () => { this.dragged = null; });
-    this.animate();
-    this.calc();
-  },
-
-  calc() {
-    const k = this.words[0], q = this.words[1];
-    document.getElementById("vLblA").textContent = `${k.label} [${(k.x/460).toFixed(2)}, ${(1 - k.y/230).toFixed(2)}]`;
-    document.getElementById("vLblB").textContent = `${q.label} [${(q.x/460).toFixed(2)}, ${(1 - q.y/230).toFixed(2)}]`;
-
-    const ox = 20, oy = 210;
-    const ax = k.x - ox, ay = oy - k.y;
-    const bx = q.x - ox, by = oy - q.y;
-    const dot = (ax * bx) + (ay * by);
-    const mag = Math.hypot(ax, ay) * Math.hypot(bx, by);
-    const sim = mag ? Math.max(0, Math.min(1, dot / mag)) : 0;
-    document.getElementById("vSimVal").textContent = sim.toFixed(3);
-  },
-
-  snapAnalogy() {
-    soundEngine.fanfare();
-    const k = this.words[0], m = this.words[2], w = this.words[3], q = this.words[1];
-    q.x = Math.round(k.x - m.x + w.x);
-    q.y = Math.round(k.y - m.y + w.y);
-    this.calc();
-    document.getElementById("vStatusTxt").textContent = "Solved! Geometric vector displacement snapped Queen to coordinate position.";
-  },
-
-  animate() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    const ox = 20, oy = 210;
-
-    this.ctx.strokeStyle = "rgba(217, 119, 6, 0.25)";
-    this.ctx.beginPath();
-    this.ctx.moveTo(ox, 10);
-    this.ctx.lineTo(ox, oy);
-    this.ctx.lineTo(450, oy);
-    this.ctx.stroke();
-
-    this.words.forEach(w => {
-      this.ctx.beginPath();
-      this.ctx.moveTo(ox, oy);
-      this.ctx.lineTo(w.x, w.y);
-      this.ctx.strokeStyle = w.color + "55";
-      this.ctx.stroke();
-
-      this.ctx.beginPath();
-      this.ctx.arc(w.x, w.y, 6, 0, Math.PI * 2);
-      this.ctx.fillStyle = w.color;
-      this.ctx.fill();
-
-      this.ctx.fillStyle = "#ffffff";
-      this.ctx.font = "11px monospace";
-      this.ctx.fillText(w.label, w.x + 8, w.y + 4);
-    });
-
-    requestAnimationFrame(() => this.animate());
-  }
-};
-
-const gradientLab = {
-  canvas: document.getElementById("lossCanvas"),
-  ctx: null,
-  weight: 3.2,
-  learningRate: 0.20,
-
-  init() {
-    if (!this.canvas) return;
-    this.ctx = this.canvas.getContext("2d");
-    this.render();
-  },
-
-  setRate(val) {
-    this.learningRate = val / 100;
-    const label = document.getElementById("lrLabel");
-    if (this.learningRate > 0.8) {
-      label.textContent = `${this.learningRate.toFixed(2)} (Exploding Gradient Danger)`;
-      label.style.color = "#dc2626";
-    } else {
-      label.textContent = `${this.learningRate.toFixed(2)} (Optimal Convergence)`;
-      label.style.color = "#059669";
-    }
-  },
-
-  step() {
-    soundEngine.click();
-    const deriv = 2 * this.weight;
-    this.weight = this.weight - (this.learningRate * deriv);
-    if (Math.abs(this.weight) > 4.5) {
-      this.weight = Math.sign(this.weight) * 4.4;
-    } else if (Math.abs(this.weight) < 0.05) {
-      soundEngine.fanfare();
-    }
-    this.render();
-  },
-
-  reset() {
-    soundEngine.click();
-    this.weight = 3.2;
-    this.render();
-  },
-
-  render() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    const cx = this.canvas.width / 2;
-    const cy = this.canvas.height - 30;
-
-    this.ctx.beginPath();
-    this.ctx.strokeStyle = "rgba(217, 119, 6, 0.4)";
-    this.ctx.lineWidth = 2.5;
-    for (let x = -4; x <= 4; x += 0.1) {
-      const px = cx + (x * 45);
-      const py = cy - (Math.pow(x, 2) * 8.5);
-      if (x === -4) this.ctx.moveTo(px, py);
-      else this.ctx.lineTo(px, py);
-    }
-    this.ctx.stroke();
-
-    const marbleX = cx + (this.weight * 45);
-    const marbleY = cy - (Math.pow(this.weight, 2) * 8.5);
-    const deriv = 2 * this.weight;
-
-    this.ctx.beginPath();
-    this.ctx.strokeStyle = "#f59e0b";
-    this.ctx.lineWidth = 1.5;
-    this.ctx.moveTo(marbleX - 25, marbleY + (deriv * 3.5));
-    this.ctx.lineTo(marbleX + 25, marbleY - (deriv * 3.5));
-    this.ctx.stroke();
-
-    this.ctx.beginPath();
-    this.ctx.arc(marbleX, marbleY, 7, 0, Math.PI * 2);
-    this.ctx.fillStyle = "#dc2626";
-    this.ctx.fill();
-    this.ctx.strokeStyle = "#ffffff";
-    this.ctx.lineWidth = 1.5;
-    this.ctx.stroke();
-
-    document.getElementById("gradWeight").textContent = this.weight.toFixed(3);
-    document.getElementById("gradDeriv").textContent = deriv.toFixed(3);
-    document.getElementById("gradLoss").textContent = Math.pow(this.weight, 2).toFixed(3);
-  }
-};
-
-const confusionMatrixLab = {
-  update(rawVal) {
-    const cutoff = parseInt(rawVal) / 100;
-    document.getElementById("cmThresholdLbl").textContent = cutoff.toFixed(2);
-
-    const tp = Math.round(110 * (1 - cutoff * 0.65));
-    const fp = Math.round(65 * Math.pow(1 - cutoff, 1.4));
-    const fn = Math.round(110 - tp);
-    const tn = Math.round(120 - fp);
-
-    document.getElementById("cmTP").textContent = tp;
-    document.getElementById("cmFP").textContent = fp;
-    document.getElementById("cmFN").textContent = fn;
-    document.getElementById("cmTN").textContent = tn;
-
-    const rateA = 0.70;
-    const rateB = (tp + fp) > 0 ? ((tp * 0.55 + fp * 0.8) / 150) : 0.05;
-    const ratio = Math.min(100, Math.max(15, (rateB / rateA) * 100));
-
-    const ratioEl = document.getElementById("cmAdverseRatio");
-    const legalEl = document.getElementById("cmLegalStatus");
-    const recEl = document.getElementById("cmPolicyRecommendation");
-    const verdictEl = document.getElementById("cmVerdict");
-
-    ratioEl.textContent = ratio.toFixed(1) + "%";
-
-    if (cutoff < 0.35) {
-      verdictEl.textContent = "THRESHOLD: LOW (AGGRESSIVE ALERTS)";
-    } else if (cutoff > 0.65) {
-      verdictEl.textContent = "THRESHOLD: HIGH (MINIMAL FALSE ALARMS)";
-    } else {
-      verdictEl.textContent = "THRESHOLD: 0.50 (STANDARD BALANCE)";
-    }
-
-    if (ratio < 80.0) {
-      legalEl.textContent = "VIOLATES 80% FOUR-FIFTHS RULE";
-      legalEl.style.color = "#dc2626";
-      recEl.textContent = `Discriminatory adverse impact detected (${ratio.toFixed(1)}%). Lowering cutoff reduces missed students but flags Group B with false positive deficit stigmas.`;
-    } else {
-      legalEl.textContent = "SATISFIES 80% PARITY THRESHOLD";
-      legalEl.style.color = "#059669";
-      recEl.textContent = `Regulatory compliance achieved (${ratio.toFixed(1)}%). Selection distribution satisfies EEOC adverse impact thresholds.`;
-    }
-  }
-};
-
-const dragonBossRaid = {
-  canvas: document.getElementById("bossCombatCanvas"),
-  ctx: null,
-  bossHp: 100,
-  playerHp: 100,
-  currentRound: 0,
-  questions: [
-    {
-      attackName: "Stochastic Hallucination Fireball",
-      bossDesc: "Ignis breathes synthetic academic citations with completely fabricated author names and fake DOIs!",
-      question: "Which verification step should the Dino Mech execute to catch this hallucination?",
-      choices: [
-        { text: "Look up the paper title or DOI in PubMed or Google Scholar to confirm it physically exists", correct: true },
-        { text: "Copy the synthetic bibliography directly into the paper without checking", correct: false },
-        { text: "Ask Ignis if he is confident in his references", correct: false }
-      ],
-      winLog: "✓ Direct Hit! PubMed verification unmasked the fake DOI. Dino Plasma Cannon dealt 34 damage!"
-    },
-    {
-      attackName: "Exploding Gradient Conflagration",
-      bossDesc: "Ignis sets the learning rate to 2.5, causing parameter updates to oscillate wildly into infinity!",
-      question: "What mathematical adjustment will stabilize the Dino Mech's descent curve?",
-      choices: [
-        { text: "Apply learning rate decay and gradient clipping to stabilize the weight updates", correct: true },
-        { text: "Double the learning rate to 5.0 to finish training faster", correct: false },
-        { text: "Delete the loss function from memory", correct: false }
-      ],
-      winLog: "✓ Critical Defense! Gradient clipping stabilized the curve. Dino Tail Strike dealt 34 damage!"
-    },
-    {
-      attackName: "Proxy Variable Infernal Trap",
-      bossDesc: "Ignis deploys an attendance model claiming zero bias, but relying heavily on student home ZIP codes!",
-      question: "How does the four-fifths rule catch this disguised demographic bias?",
-      choices: [
-        { text: "It divides Group B's pass rate by Group A's pass rate to detect adverse impact below 80%", correct: true },
-        { text: "It automatically deletes all student discipline records", correct: false },
-        { text: "It assumes models are fair as long as race is omitted from the table", correct: false }
-      ],
-      winLog: "✓ Victory Strike! The Four-Fifths audit stripped the proxy bias. Ignis has been subdued!"
-    }
-  ],
-
-  checkUnlock() {
-    const isReady = app.state.xp >= 600 || app.state.level >= 3;
-    const lockedEl = document.getElementById("dragonLockedCard");
-    const arenaEl = document.getElementById("dragonUnlockedArena");
-    const statusEl = document.getElementById("portalDragonStatus");
-
-    if (isReady) {
-      if (lockedEl) lockedEl.style.display = "none";
-      if (arenaEl) arenaEl.style.display = "block";
-      if (statusEl) statusEl.textContent = "⚔️ Arena Unlocked!";
-      this.init();
-    } else {
-      if (lockedEl) lockedEl.style.display = "block";
-      if (arenaEl) arenaEl.style.display = "none";
-      if (statusEl) statusEl.textContent = "🔒 Complete Modules to Unlock";
-    }
-  },
-
-  init() {
-    if (!this.canvas) return;
-    this.ctx = this.canvas.getContext("2d");
-    this.loadRound();
-    this.drawArena();
-  },
-
-  loadRound() {
-    if (this.currentRound >= this.questions.length) {
-      this.victory();
-      return;
-    }
-    const qData = this.questions[this.currentRound];
-    document.getElementById("bossIncomingMove").textContent = `Ignis attacks with: ${qData.attackName}!`;
-    document.getElementById("bossMoveDescription").textContent = qData.bossDesc;
-    document.getElementById("questionPromptHeading").textContent = qData.question;
-
-    const grid = document.getElementById("combatTacticsGrid");
-    grid.innerHTML = "";
-    qData.choices.forEach(c => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "tactical-btn";
-      btn.textContent = c.text;
-      btn.onclick = () => this.handleAnswer(c.correct, qData.winLog);
-      grid.appendChild(btn);
-    });
-  },
-
-  handleAnswer(isCorrect, winLogText) {
-    const log = document.getElementById("combatLogBox");
-    if (isCorrect) {
-      soundEngine.fanfare();
-      this.bossHp = Math.max(0, this.bossHp - 34);
-      document.getElementById("bossHpFill").style.width = this.bossHp + "%";
-      document.getElementById("bossHpText").textContent = `${this.bossHp} / 100`;
-      log.innerHTML = `<p style="color: #6ee7b7;">${winLogText}</p>`;
-      this.currentRound++;
-      setTimeout(() => this.loadRound(), 800);
-    } else {
-      soundEngine.click();
-      this.playerHp = Math.max(0, this.playerHp - 25);
-      document.getElementById("playerHpFill").style.width = this.playerHp + "%";
-      document.getElementById("playerHpText").textContent = `${this.playerHp} / 100`;
-      log.innerHTML = `<p style="color: #fca5a5;">❌ Incorrect answer! Ignis hit the Dino Mech for 25 damage. Review your concepts and choose again!</p>`;
-      if (this.playerHp <= 0) {
-        log.innerHTML = `<p style="color: #ef4444;">⚠️ Dino Mech energy depleted! Resetting round health...</p>`;
-        this.playerHp = 100;
-        document.getElementById("playerHpFill").style.width = "100%";
-        document.getElementById("playerHpText").textContent = "100 / 100";
-      }
-    }
-  },
-
-  victory() {
-    soundEngine.fanfare();
-    document.getElementById("bossIncomingMove").textContent = "ARENA VICTORY: IGNIS IS SUBDUED!";
-    document.getElementById("bossMoveDescription").textContent = "You demonstrated mastery over ML mathematics, prompt calibration, and algorithmic governance.";
-    document.getElementById("questionPromptHeading").textContent = "All challenges completed!";
-    document.getElementById("combatTacticsGrid").innerHTML = "<button class='btn-royal-gold' onclick='app.nav(\"hub\")'>View Verified Portfolio →</button>";
-    document.getElementById("combatLogBox").innerHTML = "<p style='color: #fbbf24;'>Bonus +150 XP Awarded! All competencies verified.</p>";
-    app.state.bossDefeated = true;
-    app.state.xp = Math.min(1000, app.state.xp + 150);
-    app.save();
-    app.sync();
-  },
-
-  drawArena() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    this.ctx.strokeStyle = "#334155";
-    this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, 185);
-    this.ctx.lineTo(this.canvas.width, 185);
-    this.ctx.stroke();
-
-    this.ctx.fillStyle = "#0284c7";
-    this.ctx.beginPath();
-    this.ctx.ellipse(120, 145, 34, 22, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.beginPath();
-    this.ctx.arc(150, 128, 14, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.fillStyle = "#fef08a";
-    this.ctx.fillRect(152, 124, 4, 4);
-
-    this.ctx.strokeStyle = "#0284c7";
-    this.ctx.lineWidth = 6;
-    this.ctx.beginPath();
-    this.ctx.moveTo(90, 145);
-    this.ctx.lineTo(60, 158);
-    this.ctx.moveTo(110, 165);
-    this.ctx.lineTo(110, 184);
-    this.ctx.moveTo(135, 165);
-    this.ctx.lineTo(135, 184);
-    this.ctx.stroke();
-
-    this.ctx.fillStyle = "#dc2626";
-    this.ctx.beginPath();
-    this.ctx.arc(620, 120, 44, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = "#d97706";
-    this.ctx.beginPath();
-    this.ctx.moveTo(590, 95);
-    this.ctx.lineTo(570, 55);
-    this.ctx.lineTo(605, 90);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = "#fef08a";
-    this.ctx.beginPath();
-    this.ctx.arc(595, 110, 6, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.fillStyle = "#0f172a";
-    this.ctx.fillRect(593, 107, 3, 6);
-  }
-};
-
-const socraticSim = {
-  setMode(mode) {
-    soundEngine.click();
-    const btnS = document.getElementById("btnModeSocratic");
-    const btnU = document.getElementById("btnModeUnstructured");
-    const badge = document.getElementById("tutorModeBadge");
-    const prompt = document.getElementById("chatStudentPrompt");
-    const resp = document.getElementById("chatAiResponse");
-    const integrity = document.getElementById("chatIntegrityScore");
-    const expl = document.getElementById("chatExplanation");
-
-    if (mode === "socratic") {
-      btnS.classList.add("active");
-      btnU.classList.remove("active");
-      badge.textContent = "MODE: SOCRATIC COACH";
-      prompt.textContent = `"Context: AP World History essay on the Industrial Revolution. Role: Debate coach. Action: Challenge my thesis that steam power was purely beneficial for working-class families. Format: 3 targeted counter-questions. Target: High school student."`;
-      resp.textContent = `"Let's test your thesis with three historical questions: 1. How did rapid urbanization and unregulated factory working conditions impact infant mortality rates? 2. What happened to skilled artisan cottage weavers when power looms automated production? 3. Did economic gains distribute evenly, or did real wages stagnate during the first 50 years? How will you counter these points in your paper?"`;
-      integrity.textContent = "Zone 1: Ethical Socratic Support (100% Student Authorship Preserved)";
-      integrity.style.color = "#059669";
-      expl.textContent = "Using AI to pressure-test argumentation refines reasoning skills without generating submitted text.";
-    } else {
-      btnU.classList.add("active");
-      btnS.classList.remove("active");
-      badge.textContent = "MODE: DIRECT GENERATION ENGINE";
-      prompt.textContent = `"Write my AP World History essay on whether steam power was good or bad for families."`;
-      resp.textContent = `"The Industrial Revolution, marked by the invention of steam power, brought extensive economic transformations to nineteenth-century family dynamics. In this essay, I will explore both the positive and negative facets of mechanized labor, concluding that technological advancement catalyzed irreversible societal shifts."`;
-      integrity.textContent = "Zone 4: Direct Plagiarism Violation (0% Student Authorship)";
-      integrity.style.color = "#dc2626";
-      expl.textContent = "Directly generating essays bypasses the student's learning process and constitutes an explicit honor code violation.";
-    }
-  }
-};
-
-const citadelParticles = {
-  canvas: document.getElementById("citadelCanvas"),
-  ctx: null,
-  spores: [],
-
-  init() {
-    if (!this.canvas) return;
-    this.ctx = this.canvas.getContext("2d");
-    this.resize();
-    window.addEventListener("resize", () => this.resize());
-    this.animate();
-  },
-
-  resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-    this.spores = Array.from({ length: 40 }, () => ({
-      x: Math.random() * this.canvas.width,
-      y: Math.random() * this.canvas.height,
-      radius: Math.random() * 2 + 0.8,
-      speedX: (Math.random() - 0.5) * 0.35,
-      speedY: -Math.random() * 0.45 - 0.15,
-      alpha: Math.random() * 0.4 + 0.2
-    }));
-  },
-
-  animate() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.spores.forEach(s => {
-      s.x += s.speedX;
-      s.y += s.speedY;
-      if (s.y < 0) s.y = this.canvas.height;
-      if (s.x < 0) s.x = this.canvas.width;
-      if (s.x > this.canvas.width) s.x = 0;
-
-      this.ctx.beginPath();
-      this.ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-      this.ctx.fillStyle = `rgba(217, 119, 6, ${s.alpha})`;
-      this.ctx.fill();
-    });
-    requestAnimationFrame(() => this.animate());
-  }
-};
-
-window.addEventListener("DOMContentLoaded", () => {
-  app.init();
-  citadelParticles.init();
-  tier1Bench.update();
-  vectorExplorer.init();
-  gradientLab.init();
-  confusionMatrixLab.update(50);
-  window.addEventListener("mousemove", e => companion.track(e));
-});
+
+        <div class="companion-post post-right" onclick="companion.speak('princess')">
+          <div class="archon-avatar">
+            <svg viewBox="0 0 100 120" class="archon-svg">
+              <path d="M32,26 L50,12 L68,26 Q50,22 32,26" fill="#be123c" stroke="#d97706" stroke-width="2"/>
+              <path d="M24,42 C20,70 28,100 32,108 C36,70 32,50 36,36 C42,22 58,22 64,36 C68,50 64,70 68,108 C72,100 80,70 76,42 Z" fill="#1e1b4b"/>
+              <circle cx="50" cy="46" r="21" fill="#fed7aa"/>
+              <ellipse cx="43" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <ellipse cx="57" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <circle cx="43" cy="44" r="2.5" fill="#059669" id="princessEyeL"/>
+              <circle cx="57" cy="44" r="2.5" fill="#059669" id="princessEyeR"/>
+              <path d="M45,55 Q50,60 55,55" stroke="#9f1239" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M32,67 L68,67 L76,110 L24,110 Z" fill="#6366f1"/>
+              <path d="M42,67 L58,67 L55,110 L45,110 Z" fill="#d97706"/>
+            </svg>
+          </div>
+          <div class="archon-speech-tag" id="princessSpeech">
+            <strong>Princess Aurelia:</strong> "Ethical rules are our best defense. Automated models should never make life-changing calls without human review."
+          </div>
+        </div>
+
+        <div class="dragon-portal-badge" onclick="app.nav('dragon')">
+          <svg viewBox="0 0 120 120" class="dragon-portal-svg">
+            <defs>
+              <radialGradient id="dragonFlame" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#f59e0b"/>
+                <stop offset="60%" stop-color="#dc2626"/>
+                <stop offset="100%" stop-color="#450a0a"/>
+              </radialGradient>
+            </defs>
+            <circle cx="60" cy="60" r="54" fill="url(#dragonFlame)" stroke="#d97706" stroke-width="3"/>
+            <path d="M35,45 Q48,22 62,35 Q78,18 85,42 Q98,58 75,76 Q60,92 48,82 Q30,75 35,45 Z" fill="#0f172a"/>
+            <polygon points="45,26 50,38 40,36" fill="#d97706"/>
+            <polygon points="68,22 72,36 62,32" fill="#d97706"/>
+            <polygon points="72,50 82,52 74,56" fill="#fef08a"/>
+            <path d="M82,62 Q96,65 92,72 Q86,72 82,66" fill="#ea580c"/>
+          </svg>
+          <div class="portal-callout">
+            <strong id="portalDragonTitle">Ignis Dragon Arena</strong>
+            <span id="portalDragonStatus">🔒 Complete Modules to Unlock</span>
+          </div>
+        </div>
+
+        <div class="hero-content">
+          <div class="citadel-pill-badge">MACHINE LEARNING LAB</div>
+          <h1 class="hero-title">Untangling the<br><span>Mechanics of AI.</span></h1>
+          <p class="hero-subtitle">
+            Most people treat AI like an unpredictable black box. We built this lab to show you what is actually happening under the hood: training scalar neurons, plotting multi-dimensional vector spaces, fixing exploding gradients, and auditing algorithms for bias.
+          </p>
+
+          <div class="hero-btn-row">
+            <button type="button" class="btn-royal-gold" onclick="app.nav('curriculum')">Open Grimoire Tracks</button>
+            <button type="button" class="btn-royal-blue" onclick="app.nav('governance')">AI Governance Suite</button>
+            <button type="button" class="btn-royal-neutral" onclick="app.nav('sandboxes')">Alchemical Sandboxes</button>
+            <button type="button" class="btn-royal-neutral" onclick="app.nav('dragon')">Dino vs. Dragon Raid ⚔️</button>
+          </div>
+
+          <button type="button" class="scroll-cue" onclick="app.nav('curriculum')">
+            Enter the Fortress Courtyard <span class="arrow-down">⌄</span>
+          </button>
+        </div>
+
+        <svg class="battlement-bottom-svg" viewBox="0 0 1440 120" preserveAspectRatio="none">
+          <path d="M0,40 Q360,90 720,40 Q1080,90 1440,40 L1440,120 L0,120 Z" fill="#1e293b"/>
+          <path d="M0,70 Q720,20 1440,70 L1440,120 L0,120 Z" fill="#0f172a"/>
+        </svg>
+      </div>
+
+      <div class="section-title" style="margin-top: 35px;">
+        <span class="blueprint-tag">FIELD INVESTIGATION ROADMAP</span>
+        <h2>The 5-Stage Learning Path</h2>
+        <p>Advance through core machine learning tracks, master governance frameworks, and earn your battle certification:</p>
+      </div>
+
+      <div class="roadmap-grid">
+        <div class="roadmap-card tier-1" onclick="app.nav('curriculum')">
+          <div class="card-step">TIER 1 // APPRENTICE</div>
+          <strong>Foundations & Scalars</strong>
+          <p>Weights, bias thresholds, and classical code vs. machine learning.</p>
+        </div>
+        <div class="roadmap-card tier-2" onclick="app.nav('curriculum')">
+          <div class="card-step">TIER 2 // ALCHEMIST</div>
+          <strong>Vector Geometry</strong>
+          <p>2D embeddings, cosine angles, and sub-word BPE tokenization.</p>
+        </div>
+        <div class="roadmap-card tier-3" onclick="app.nav('curriculum')">
+          <div class="card-step">TIER 3 // INQUISITOR</div>
+          <strong>Optimization Calculus</strong>
+          <p>Scaled self-attention matrices, loss slopes, and descent.</p>
+        </div>
+        <div class="roadmap-card tier-gov" onclick="app.nav('governance')">
+          <div class="card-step">TIER 4 // GOVERNOR</div>
+          <strong>AI Governance Frameworks</strong>
+          <p>NIST AI RMF, EU AI Act risk tiers, model cards, and drift audits.</p>
+        </div>
+        <div class="roadmap-card tier-boss" onclick="app.nav('dragon')">
+          <div class="card-step">FINALE // BOSS RAID</div>
+          <strong>The Trial of Ignis</strong>
+          <p>Pilot the AI Dino Mech into battle, answering model questions to defeat the dragon.</p>
+        </div>
+      </div>
+
+      <div class="core-box" id="coreBanner0" onclick="app.collectCore(0)">
+        <div class="core-glyph">✧</div>
+        <div>
+          <strong>Archon Rune I: Foundational Weight Tensor</strong>
+          <small>Click to secure this Apprentice milestone in your vault (+50 XP)</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CURRICULUM WITH PERMANENT VISUAL SCHEMATICS -->
+    <section id="tab-curriculum" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">THE CITADEL GRIMOIRE</span>
+        <h2>Visual Machine Learning Tracks</h2>
+        <p>Every track features visual schematics, mathematical flows, and commentary from the royal archons.</p>
+      </div>
+
+      <!-- TIER 1 -->
+      <div class="module-card tier-card-1">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">TIER 1 // APPRENTICE (INTRODUCTORY)</span>
+            <h3>Chamber 01: Classical Logic vs. Empirical Learning</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">Learn how systems shift from explicit rule authoring to iterative parameter optimization.</p>
+
+        <div class="archon-guide-inline">
+          <div class="guide-mini-avatar prince">
+            <svg viewBox="0 0 40 40"><circle cx="20" cy="18" r="12" fill="#fed7aa"/><polygon points="12,10 16,4 20,8 24,4 28,10" fill="#d97706"/><circle cx="16" cy="16" r="2" fill="#2563eb"/><circle cx="24" cy="16" r="2" fill="#2563eb"/></svg>
+          </div>
+          <div>
+            <strong>Prince Valen's Tactical Note:</strong>
+            <p>Look at the signal flow diagram below. In traditional code, you write the rules. In machine learning, inputs scale across weights (W) and combine with bias (b) to discover the rules!</p>
+          </div>
+        </div>
+
+        <div class="visual-schematic-stage">
+          <div class="schematic-header">ARCHITECTURAL DIAGRAM: DETERMINISTIC LOGIC VS. MACHINE LEARNING</div>
+          <svg viewBox="0 0 620 120" class="schematic-canvas">
+            <rect x="20" y="15" width="260" height="90" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+            <text x="150" y="42" fill="#f59e0b" font-size="12" font-weight="700" text-anchor="middle">TRADITIONAL PROGRAMMING</text>
+            <text x="150" y="66" fill="#cbd5e1" font-size="11" text-anchor="middle">Inputs + Written Rules</text>
+            <text x="150" y="88" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">&rarr; Static Answers</text>
+
+            <path d="M 290 60 L 325 60" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4"/>
+
+            <rect x="335" y="15" width="265" height="90" rx="8" fill="#1e293b" stroke="#059669" stroke-width="2"/>
+            <text x="467" y="42" fill="#10b981" font-size="12" font-weight="700" text-anchor="middle">MACHINE LEARNING</text>
+            <text x="467" y="66" fill="#cbd5e1" font-size="11" text-anchor="middle">Inputs (X) + True Labels (Y)</text>
+            <text x="467" y="88" fill="#fbbf24" font-size="12" font-weight="700" text-anchor="middle">&rarr; Learned Parameters (W, b)</text>
+          </svg>
+          <div class="schematic-caption">Figure 1.1: Empirical optimization inverts rule formulation by deriving weights directly from target outcomes.</div>
+        </div>
+
+        <div class="visual-schematic-stage" style="margin-top: 18px;">
+          <div class="schematic-header">CIRCUIT DIAGRAM: THE SCALAR PERCEPTRON (W * X + B)</div>
+          <svg viewBox="0 0 620 130" class="schematic-canvas">
+            <circle cx="70" cy="35" r="18" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+            <text x="70" y="40" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">x1</text>
+            <circle cx="70" cy="95" r="18" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+            <text x="70" y="100" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">x2</text>
+
+            <line x1="88" y1="35" x2="245" y2="65" stroke="#f59e0b" stroke-width="2"/>
+            <text x="155" y="42" fill="#f59e0b" font-size="11" font-weight="700">w1</text>
+            <line x1="88" y1="95" x2="245" y2="65" stroke="#f59e0b" stroke-width="2"/>
+            <text x="155" y="92" fill="#f59e0b" font-size="11" font-weight="700">w2</text>
+
+            <circle cx="275" cy="65" r="30" fill="#0f172a" stroke="#d97706" stroke-width="2.5"/>
+            <text x="275" y="64" fill="#fef08a" font-size="18" font-weight="700" text-anchor="middle">&Sigma;</text>
+            <text x="275" y="80" fill="#94a3b8" font-size="10" text-anchor="middle">+ bias b</text>
+
+            <line x1="305" y1="65" x2="400" y2="65" stroke="#94a3b8" stroke-width="2"/>
+            <rect x="400" y="38" width="70" height="54" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+            <path d="M 412 76 L 435 76 L 435 52 L 458 52" stroke="#10b981" stroke-width="2.5" fill="none"/>
+
+            <line x1="470" y1="65" x2="540" y2="65" stroke="#10b981" stroke-width="2.5"/>
+            <circle cx="555" cy="65" r="15" fill="#059669"/>
+            <text x="555" y="70" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle">y</text>
+          </svg>
+          <div class="schematic-caption">Figure 1.2: A single perceptron scales features through weights, offsets threshold with bias, and computes activation.</div>
+        </div>
+
+        <div class="details-content" style="margin-top: 14px;">
+          <p>In standard programming, developers write <strong>deterministic rules</strong>: explicit logic using <code>if/else</code> branches. While effective for simple boundaries, written rules fall apart when dealing with messy real-world data like handwriting, audio recordings, or medical scans. Machine learning starts with rough guess numbers and adjusts them as it sees more examples:</p>
+          <code>prediction = activation(W * x + b)</code>
+        </div>
+
+        <div class="quiz-panel">
+          <h4>Tier 1 Checkpoint: Conceptual Foundations</h4>
+          <div class="checkpoint-item">
+            <p><strong>1.1:</strong> In the perceptron equation <code>w * x + b</code>, what is the main job of the bias (b)?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(0, 0, this)">It shifts the decision threshold up or down independently of the input</button>
+              <button type="button" onclick="app.quiz(0, 1, this)">It deletes outliers from the training data</button>
+              <button type="button" onclick="app.quiz(0, 2, this)">It speeds up the computer processor</button>
+            </div>
+            <div id="qfb0" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 2 -->
+      <div class="module-card tier-card-2">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">TIER 2 // ALCHEMIST (INTERMEDIATE)</span>
+            <h3>Chamber 02: High-Dimensional Vectors & The C.R.A.F.T. Standard</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">Translating raw text strings into geometric vector spaces, with systematic prompt calibration.</p>
+
+        <div class="archon-guide-inline">
+          <div class="guide-mini-avatar princess">
+            <svg viewBox="0 0 40 40"><circle cx="20" cy="18" r="12" fill="#fed7aa"/><path d="M12,12 L20,4 L28,12 Z" fill="#e11d48"/><circle cx="16" cy="16" r="2" fill="#059669"/><circle cx="24" cy="16" r="2" fill="#059669"/></svg>
+          </div>
+          <div>
+            <strong>Princess Aurelia's Linguistic Insight:</strong>
+            <p>Look at the Cartesian vector map below. When words are represented as vectors, relationships become geometric angles. We can literally compute analogies with geometry!</p>
+          </div>
+        </div>
+
+        <div class="visual-schematic-stage">
+          <div class="schematic-header">VECTOR SPACE PROJECTION: SEMANTIC GEOMETRY</div>
+          <svg viewBox="0 0 620 150" class="schematic-canvas">
+            <line x1="60" y1="130" x2="560" y2="130" stroke="#475569" stroke-width="2"/>
+            <line x1="60" y1="130" x2="60" y2="20" stroke="#475569" stroke-width="2"/>
+            <text x="550" y="145" fill="#94a3b8" font-size="10">Dimension X</text>
+            <text x="25" y="30" fill="#94a3b8" font-size="10">Dim Y</text>
+
+            <line x1="60" y1="130" x2="230" y2="90" stroke="#0284c7" stroke-width="2"/>
+            <circle cx="230" cy="90" r="6" fill="#38bdf8"/>
+            <text x="240" y="94" fill="#38bdf8" font-size="12" font-weight="700">v(Man)</text>
+
+            <line x1="60" y1="130" x2="370" y2="50" stroke="#f59e0b" stroke-width="2"/>
+            <circle cx="370" cy="50" r="6" fill="#facc15"/>
+            <text x="380" y="54" fill="#facc15" font-size="12" font-weight="700">v(King)</text>
+
+            <path d="M 230 90 L 370 50" stroke="#dc2626" stroke-width="2" stroke-dasharray="3"/>
+            <text x="300" y="62" fill="#f87171" font-size="10">+ Royalty Vector</text>
+
+            <circle cx="270" cy="115" r="6" fill="#ec4899"/>
+            <text x="280" y="119" fill="#ec4899" font-size="12" font-weight="700">v(Woman)</text>
+
+            <path d="M 270 115 L 410 75" stroke="#dc2626" stroke-width="2" stroke-dasharray="3"/>
+            <circle cx="410" cy="75" r="6" fill="#a855f7"/>
+            <text x="420" y="79" fill="#c084fc" font-size="12" font-weight="700">v(Queen)</text>
+          </svg>
+          <div class="schematic-caption">Figure 2.1: Semantic linear displacement: subtracting masculine attributes and adding feminine attributes translates King into Queen.</div>
+        </div>
+
+        <div class="visual-schematic-stage" style="margin-top: 18px;">
+          <div class="schematic-header">THE C.R.A.F.T. CALIBRATION MATRIX</div>
+          <div class="craft-pill-matrix">
+            <div class="c-matrix-card"><strong>C</strong><span>Context</span><small>Syllabus topic, prior knowledge & bounds</small></div>
+            <div class="c-matrix-card"><strong>R</strong><span>Role</span><small>Expert tutor persona & explicit voice</small></div>
+            <div class="c-matrix-card"><strong>A</strong><span>Action</span><small>Clear directive verb (contrast/audit)</small></div>
+            <div class="c-matrix-card"><strong>F</strong><span>Format</span><small>Structural constraints (table/schema)</small></div>
+            <div class="c-matrix-card"><strong>T</strong><span>Target</span><small>Cognitive depth & specific grade level</small></div>
+          </div>
+          <div class="schematic-caption">Figure 2.2: The five structural boundaries that eliminate hallucinations and calibrate prompt responses.</div>
+        </div>
+
+        <div class="details-content" style="margin-top: 14px;">
+          <p>Computers process numeric lists called vector embeddings. Words with similar meanings point in similar directions. We measure this closeness using Cosine Similarity, which calculates the cosine of the angle between vectors:</p>
+          <code>Cosine Similarity = (A • B) / (||A|| * ||B||)</code>
+        </div>
+
+        <div class="quiz-panel">
+          <h4>Tier 2 Checkpoint: Vector Geometry & Prompting</h4>
+          <div class="checkpoint-item">
+            <p><strong>2.1:</strong> If two word vectors have a Cosine Similarity score of 0.0, what does that mean?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(1, 0, this)">The vectors point in completely opposite directions</button>
+              <button type="button" onclick="app.quiz(1, 1, this)">The vectors are at a 90-degree angle, showing no semantic relationship</button>
+              <button type="button" onclick="app.quiz(1, 2, this)">The words share the exact same definition</button>
+            </div>
+            <div id="qfb1" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 3 -->
+      <div class="module-card tier-card-3">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">TIER 3 // INQUISITOR (ADVANCED)</span>
+            <h3>Chamber 03: Scaled Self-Attention & Gradient Descent Calculus</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">The linear algebra of Transformer multi-head attention and loss gradient minimization.</p>
+
+        <div class="visual-schematic-stage">
+          <div class="schematic-header">TRANSFORMER ATTENTION ARCHITECTURE: Q, K, V MATMUL FLOW</div>
+          <svg viewBox="0 0 620 130" class="schematic-canvas">
+            <rect x="30" y="30" width="85" height="35" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="72" y="52" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">Queries (Q)</text>
+
+            <rect x="30" y="75" width="85" height="35" rx="5" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="72" y="97" fill="#f59e0b" font-size="11" font-weight="700" text-anchor="middle">Keys (K^T)</text>
+
+            <line x1="115" y1="47" x2="180" y2="65" stroke="#94a3b8" stroke-width="2"/>
+            <line x1="115" y1="92" x2="180" y2="65" stroke="#94a3b8" stroke-width="2"/>
+            <circle cx="205" cy="65" r="20" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5"/>
+            <text x="205" y="70" fill="#ffffff" font-size="14" font-weight="700" text-anchor="middle">&times;</text>
+
+            <line x1="225" y1="65" x2="280" y2="65" stroke="#94a3b8" stroke-width="2"/>
+            <rect x="280" y="47" width="80" height="36" rx="5" fill="#1e293b" stroke="#d97706" stroke-width="1.5"/>
+            <text x="320" y="69" fill="#fef08a" font-size="10" text-anchor="middle">Scale &radic;d_k</text>
+
+            <line x1="360" y1="65" x2="400" y2="65" stroke="#94a3b8" stroke-width="2"/>
+            <rect x="400" y="47" width="70" height="36" rx="5" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+            <text x="435" y="69" fill="#10b981" font-size="11" font-weight="700" text-anchor="middle">Softmax</text>
+
+            <rect x="400" y="92" width="70" height="28" rx="5" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+            <text x="435" y="110" fill="#c084fc" font-size="10" font-weight="700" text-anchor="middle">Values (V)</text>
+
+            <line x1="470" y1="65" x2="510" y2="80" stroke="#94a3b8" stroke-width="2"/>
+            <line x1="470" y1="106" x2="510" y2="80" stroke="#94a3b8" stroke-width="2"/>
+            <rect x="510" y="60" width="85" height="40" rx="5" fill="#059669"/>
+            <text x="552" y="84" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">Attention</text>
+          </svg>
+          <div class="schematic-caption">Figure 3.1: Matrix attention pipeline routing affinity weights through normalized Softmax distributions.</div>
+        </div>
+
+        <div class="visual-schematic-stage" style="margin-top: 18px;">
+          <div class="schematic-header">GRADIENT DESCENT LOSS BOWL CONVERGENCE</div>
+          <svg viewBox="0 0 620 130" class="schematic-canvas">
+            <path d="M 100 25 Q 310 145 520 25" stroke="#38bdf8" stroke-width="2.5" fill="none"/>
+            <circle cx="310" cy="85" r="6" fill="#10b981"/>
+            <text x="310" y="110" fill="#10b981" font-size="10" text-anchor="middle">Global Minimum (Loss = 0)</text>
+
+            <circle cx="450" cy="48" r="5" fill="#f59e0b"/>
+            <path d="M 450 48 Q 395 80 365 72" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3"/>
+            <circle cx="365" cy="72" r="4" fill="#facc15"/>
+            <text x="460" y="40" fill="#facc15" font-size="9">Controlled Step (&alpha; = 0.2)</text>
+
+            <circle cx="150" cy="55" r="5" fill="#ef4444"/>
+            <path d="M 150 55 Q 310 -25 480 38" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3"/>
+            <text x="210" y="16" fill="#f87171" font-size="9">Exploding Overshoot (&alpha; &gt; 1.0)</text>
+          </svg>
+          <div class="schematic-caption">Figure 3.2: Error minimization along a parabolic bowl; excessive step sizes overshoot the minimum into divergence.</div>
+        </div>
+
+        <div class="details-content" style="margin-top: 14px;">
+          <p>Transformers process all words in parallel with Scaled Dot-Product Attention:</p>
+          <code>Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V</code>
+          <p>Dividing by <code>sqrt(d_k)</code> keeps the values stable so the softmax gradients do not vanish. During training, weights update along the slope derivative:</p>
+          <code>new_weight = old_weight - learning_rate * gradient</code>
+        </div>
+
+        <div class="quiz-panel">
+          <h4>Tier 3 Checkpoint: Attention Matrices & Calculus</h4>
+          <div class="checkpoint-item">
+            <p><strong>3.1:</strong> Why does the attention formula divide by <code>sqrt(d_k)</code>?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(2, 0, this)">To keep dot products from getting too large and causing near-zero gradients in softmax</button>
+              <button type="button" onclick="app.quiz(2, 1, this)">To round decimal numbers into integers</button>
+              <button type="button" onclick="app.quiz(2, 2, this)">To compress the text file size on the hard drive</button>
+            </div>
+            <div id="qfb2" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-governance" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">GOVERNANCE & TRUSTWORTHY SYSTEMS</span>
+        <h2>AI Governance: Risk Frameworks & Compliance</h2>
+        <p>Examine regulatory standards for machine learning, including the NIST AI Risk Management Framework and the EU AI Act.</p>
+      </div>
+
+      <div class="module-card tier-card-gov">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">FRAMEWORK 01 // RISK MANAGEMENT</span>
+            <h3>The NIST AI Risk Management Framework (AI RMF 1.0)</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">The National Institute of Standards and Technology outlines four core operational functions:</p>
+
+        <div class="gov-grid">
+          <div class="gov-box">
+            <div class="gov-step-num">01</div>
+            <strong>GOVERN</strong>
+            <p>Sets accountability rules, safety policies, and transparent documentation for how AI is used.</p>
+          </div>
+          <div class="gov-box">
+            <div class="gov-step-num">02</div>
+            <strong>MAP</strong>
+            <p>Identifies where the model will be deployed, who it affects, and where training data came from.</p>
+          </div>
+          <div class="gov-box">
+            <div class="gov-step-num">03</div>
+            <strong>MEASURE</strong>
+            <p>Uses tests and math to check for accuracy, demographic bias, and performance drift over time.</p>
+          </div>
+          <div class="gov-box">
+            <div class="gov-step-num">04</div>
+            <strong>MANAGE</strong>
+            <p>Allocates resources to fix risks, monitor errors, and keep human oversight in place.</p>
+          </div>
+        </div>
+
+        <div class="accordion" style="margin-top: 18px;">
+          <details open>
+            <summary>The EU AI Act: Risk Classification Structure</summary>
+            <div class="details-content">
+              <ul>
+                <li><strong>Unacceptable Risk (Prohibited):</strong> Social credit scoring, behavioral manipulation targeting kids, and mass untargeted facial scanning. <em>Banned completely.</em></li>
+                <li><strong>High Risk (Strictly Regulated):</strong> Systems affecting critical infrastructure, school admissions/grading, hiring algorithms, and law enforcement. <em>Requires bias audits, logging, and human oversight.</em></li>
+                <li><strong>Transparency Risk:</strong> Synthetic media and chatbots. <em>Must clearly tell users they are interacting with AI.</em></li>
+                <li><strong>Minimal Risk:</strong> Video game AI, spam filters, and route navigation. <em>Operates under normal software standards.</em></li>
+              </ul>
+            </div>
+          </details>
+
+          <details>
+            <summary>Interactive Governance Lifecycle Inspector</summary>
+            <div class="details-content">
+              <p>Select a lifecycle stage to review its required validation checkpoints:</p>
+              <div class="lifecycle-pipeline">
+                <button type="button" class="btn-pipeline active" onclick="govBench.inspect(0)">1. Data Lineage</button>
+                <button type="button" class="btn-pipeline" onclick="govBench.inspect(1)">2. Model Card</button>
+                <button type="button" class="btn-pipeline" onclick="govBench.inspect(2)">3. Red-Teaming</button>
+                <button type="button" class="btn-pipeline" onclick="govBench.inspect(3)">4. Drift Telemetry</button>
+              </div>
+              <div class="pipeline-display-card" id="govPipelineCard">
+                <h4 id="govPipeTitle">1. Training Data Provenance & Lineage</h4>
+                <p id="govPipeDesc">Auditors verify data collection licenses, scrub student identifiers under FERPA guidelines, and check representation ratios across demographic groups to prevent baked-in historical bias.</p>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="quiz-panel">
+          <h4>Governance Checkpoint: Risk Assessment</h4>
+          <div class="checkpoint-item">
+            <p><strong>Gov 1.1:</strong> Under the EU AI Act and NIST frameworks, how is automated student dropout forecasting software classified?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(4, 0, this)">High Risk: It directly affects student academic opportunity and requires mandatory bias audits and human oversight</button>
+              <button type="button" onclick="app.quiz(4, 1, this)">Minimal Risk: Educational software is exempt from compliance frameworks</button>
+              <button type="button" onclick="app.quiz(4, 2, this)">Unacceptable Risk: All computer algorithms in schools are legally prohibited</button>
+            </div>
+            <div id="qfb4" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-sandboxes" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">ALCHEMICAL BENCHES</span>
+        <h2>Progressive Diagnostic Sandboxes</h2>
+        <p>Interactive tools arranged in increasing order of mathematical complexity, featuring clear diagnostic context.</p>
+      </div>
+
+      <!-- TIER 1 BENCH -->
+      <div class="module-card tier-card-1">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">BENCH 1 // APPRENTICE LEVEL</span>
+            <h3>1. Scalar Weight & Threshold Balancer</h3>
+          </div>
+          <span class="score-pill" id="b1Status">STATE: INACTIVE</span>
+        </div>
+
+        <div class="context-guide-box">
+          <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+          <p><strong>Concept:</strong> Demonstrates single-input linear weighting (w) and threshold bias shifting (b). Shows how the equation <code>z = w * x + b</code> crosses zero to trigger an active neuron output.</p>
+          <div class="guide-steps">
+            <span><strong>Try it:</strong> Set input x to 8.0 to see the neuron fire. Then shift bias b downward to see how a stricter threshold suppresses triggers.</span>
+          </div>
+        </div>
+
+        <div class="split-sandbox">
+          <div class="hud-box">
+            <label class="hud-label">INPUT FEATURE (x): <strong id="lblB1X">5.0</strong></label>
+            <input type="range" id="sliderB1X" min="0" max="100" value="50" oninput="tier1Bench.update()" class="range-slider">
+            <label class="hud-label">SYNAPTIC WEIGHT (w): <strong id="lblB1W">1.0</strong></label>
+            <input type="range" id="sliderB1W" min="-20" max="20" value="10" oninput="tier1Bench.update()" class="range-slider">
+            <label class="hud-label">THRESHOLD BIAS (b): <strong id="lblB1B">-4.0</strong></label>
+            <input type="range" id="sliderB1B" min="-100" max="50" value="-40" oninput="tier1Bench.update()" class="range-slider">
+          </div>
+          <div class="hud-box">
+            <div class="hud-row">
+              <small>AFFINE SUM (z = w*x + b)</small>
+              <strong id="b1Sum">1.00</strong>
+            </div>
+            <div class="hud-row highlight">
+              <small>ACTIVATION STATE</small>
+              <strong id="b1Output">FIRED (1.0)</strong>
+            </div>
+            <p class="caption-text" id="b1Explanation">Neuron is active. The calculated affine sum exceeds threshold zero.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 2 BENCH -->
+      <div class="module-card tier-card-2">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">BENCH 2 // ALCHEMIST LEVEL</span>
+            <h3>2. 2D Cartesian Vector Space Explorer</h3>
+          </div>
+          <button type="button" class="btn-royal-gold" onclick="vectorExplorer.snapAnalogy()">Solve: King - Man + Woman</button>
+        </div>
+
+        <div class="context-guide-box">
+          <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+          <p><strong>Concept:</strong> Visualizes word embeddings on a 2D Cartesian grid. Measures Cosine Similarity using vector dot products, showing how distance reflects meaning.</p>
+          <div class="guide-steps">
+            <span><strong>Try it:</strong> Drag King and Queen closer together to watch Cosine Similarity rise. Click Solve to watch vector math snap directly to the target word.</span>
+          </div>
+        </div>
+
+        <div class="split-sandbox">
+          <canvas id="vectorCanvas" width="460" height="230"></canvas>
+          <div class="hud-box">
+            <div class="hud-row">
+              <small>WORD VECTOR A</small>
+              <strong id="vLblA">King [0.65, 0.72]</strong>
+            </div>
+            <div class="hud-row">
+              <small>WORD VECTOR B</small>
+              <strong id="vLblB">Queen [0.60, 0.80]</strong>
+            </div>
+            <div class="hud-row highlight">
+              <small>COSINE SIMILARITY SCORE</small>
+              <strong id="vSimVal">0.985</strong>
+            </div>
+            <p id="vStatusTxt" class="caption-text">Drag coordinates to observe real-time vector angles and similarity changes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 3 BENCH -->
+      <div class="module-card tier-card-3">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">BENCH 3 // INQUISITOR LEVEL</span>
+            <h3>3. Hyperparameter Loss Surface Simulator</h3>
+          </div>
+          <div class="btn-inline-group">
+            <button type="button" class="btn-royal-gold" onclick="gradientLab.step()">Step Descent</button>
+            <button type="button" class="btn-royal-purple" onclick="gradientLab.reset()">Reset</button>
+          </div>
+        </div>
+
+        <div class="context-guide-box">
+          <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+          <p><strong>Concept:</strong> Models how gradient descent minimizes error on a loss curve. Demonstrates step sizes and shows why too high of a learning rate causes the updates to explode.</p>
+          <div class="guide-steps">
+            <span><strong>Try it:</strong> Step down with a learning rate of 0.20 to reach the bottom smoothly. Then slide it up to 1.00 to watch the marble bounce off the curve.</span>
+          </div>
+        </div>
+
+        <div class="split-sandbox">
+          <canvas id="lossCanvas" width="460" height="200"></canvas>
+          <div class="hud-box">
+            <label class="hud-label">LEARNING RATE: <strong id="lrLabel">0.20 (Optimal)</strong></label>
+            <input type="range" id="lrSlider" min="5" max="115" value="20" oninput="gradientLab.setRate(this.value)" class="range-slider">
+            <div class="hud-row" style="margin-top: 10px;">
+              <small>CURRENT WEIGHT (w)</small>
+              <strong id="gradWeight">3.200</strong>
+            </div>
+            <div class="hud-row">
+              <small>SLOPE DERIVATIVE (dL/dw)</small>
+              <strong id="gradDeriv">6.400</strong>
+            </div>
+            <div class="hud-row highlight">
+              <small>CALCULATED LOSS</small>
+              <strong id="gradLoss">10.240</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: TRIAL OF IGNIS -->
+    <section id="tab-dragon" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">DRAGON LAIR // TACTICAL BOSS BATTLE</span>
+        <h2>The Trial of Ignis: AI Dino Mech vs. The Dragon</h2>
+        <p>Pilot your AI Dino Mech into battle against Ignis. Answer foundational machine learning and governance questions correctly to launch attacks and defend against the dragon.</p>
+      </div>
+
+      <div id="dragonLockedCard" class="module-card" style="text-align: center; padding: 45px 20px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">🔒</div>
+        <h3>The Arena is Sealed!</h3>
+        <p class="summary-text" style="max-width: 580px; margin: 0 auto 20px;">
+          Knights must earn at least 600 XP by completing curriculum modules or use the Fast-Pass to unlock the combat arena.
+        </p>
+        <button type="button" class="btn-royal-gold" onclick="app.nav('curriculum')">Study Grimoire Tracks</button>
+      </div>
+
+      <div id="dragonUnlockedArena" class="module-card" style="display: none;">
+        <div class="card-head">
+          <div>
+            <h3>Ignis the Neural Wyrm vs. AI Dino Mech</h3>
+            <span class="sub-badge" id="bossPhaseBadge">ROUND 1: QUESTION CHALLENGE</span>
+          </div>
+          <div class="battle-stats-row">
+            <div class="boss-health-bar-container">
+              <span class="health-label">DINO HP:</span>
+              <div class="boss-hp-track">
+                <div id="playerHpFill" class="boss-hp-fill player-hp" style="width: 100%;"></div>
+              </div>
+              <span id="playerHpText">100 / 100</span>
+            </div>
+            <div class="boss-health-bar-container">
+              <span class="health-label">IGNIS HP:</span>
+              <div class="boss-hp-track">
+                <div id="bossHpFill" class="boss-hp-fill" style="width: 100%;"></div>
+              </div>
+              <span id="bossHpText">100 / 100</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="instructions-banner">
+          <strong>HOW TO PLAY:</strong> Ignis unleashes an AI challenge each round. Read the dragon's attack, analyze the question, and select the correct answer below. Correct answers deal 34 damage to Ignis. Wrong answers cause the Dino Mech to take 25 damage!
+        </div>
+
+        <div class="boss-arena-visual">
+          <canvas id="bossCombatCanvas" width="760" height="220"></canvas>
+          <div class="boss-telemetry-hud">
+            <strong id="bossIncomingMove">Loading round challenge...</strong>
+            <p id="bossMoveDescription">Analyzing combat conditions...</p>
+          </div>
+        </div>
+
+        <div class="tactical-action-console">
+          <h4 id="questionPromptHeading">Choose the correct answer:</h4>
+          <div class="tactical-btn-grid" id="combatTacticsGrid"></div>
+        </div>
+
+        <div id="combatLogBox" class="combat-log-console">
+          <p>⚔️ The Dino Mech stands ready. Select the valid AI engineering answer to deal damage and defend your health.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: SOCRATIC DEBATE -->
+    <section id="tab-socratic" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">DEBATE CHAMBER</span>
+        <h2>Socratic AI vs. Direct Generation Benchmark</h2>
+        <p>Demonstrates how C.R.A.F.T.-calibrated prompts foster genuine critical thinking compared to passive text generation.</p>
+      </div>
+
+      <div class="module-card">
+        <div class="card-head">
+          <h3>Interactive Homework Prompt Dialogue Simulation</h3>
+          <span class="score-pill" id="tutorModeBadge">MODE: SOCRATIC COACH</span>
+        </div>
+        <p class="summary-text">Compare an uncalibrated text generation engine against an ethical Socratic tutor.</p>
+        
+        <div class="prompt-toggle-row">
+          <button type="button" class="btn-head active" id="btnModeSocratic" onclick="socraticSim.setMode('socratic')">Socratic Tutor (C.R.A.F.T. Calibrated)</button>
+          <button type="button" class="btn-head" id="btnModeUnstructured" onclick="socraticSim.setMode('unstructured')">Direct Generation (Academic Risk)</button>
+        </div>
+
+        <div class="dialogue-box-container">
+          <div class="chat-message student-msg">
+            <strong id="chatStudentName">10th Grade Scholar:</strong>
+            <p id="chatStudentPrompt">"Context: AP World History essay on the Industrial Revolution. Role: Debate coach. Action: Challenge my thesis that steam power was purely beneficial for working-class families. Format: 3 targeted counter-questions. Target: High school student."</p>
+          </div>
+          <div class="chat-message ai-msg">
+            <strong id="chatAiName">Archon Engine (Princess Aurelia):</strong>
+            <p id="chatAiResponse">"Let's test your thesis with three historical questions: 1. How did rapid urbanization and unregulated factory working conditions impact infant mortality rates? 2. What happened to skilled artisan cottage weavers when power looms automated production? 3. Did economic gains distribute evenly, or did real wages stagnate during the first 50 years? How will you counter these points in your paper?"</p>
+          </div>
+        </div>
+
+        <div class="hud-box" style="margin-top: 14px;">
+          <div class="hud-row highlight">
+            <small>ACADEMIC INTEGRITY EVALUATION</small>
+            <strong id="chatIntegrityScore" style="color: #059669;">Zone 1: Ethical Socratic Support (100% Student Authorship Preserved)</strong>
+          </div>
+          <p id="chatExplanation" class="caption-text">Using AI to pressure-test argumentation refines reasoning skills without generating submitted text.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: CAPSTONE AUDIT -->
+    <section id="tab-capstone" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">TIER 4 // CAPSTONE AUDIT</span>
+        <h2>Module 04 Capstone: Public District Algorithm Audit</h2>
+        <p>A full audit of an automated educational dropout-forecasting platform submitted to a public school district.</p>
+      </div>
+
+      <div class="module-card tier-card-4">
+        <div class="card-head">
+          <h3>Audit Brief: "EduForecast AI"</h3>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">
+          A vendor is pitching predictive software claiming 92% accuracy in identifying students at risk of failing. The vendor claims zero bias because demographic fields were excluded from the model.
+        </p>
+
+        <div class="audit-grid">
+          <div class="phase-card">
+            <h4>Phase 1: Proxy Variable Identification</h4>
+            <p>Even without explicit demographic tags, algorithms reconstruct protected classes via correlated proxy features:</p>
+            <ul>
+              <li><strong>ZIP Codes:</strong> Reconstruct socioeconomic status and neighborhood property tax funding.</li>
+              <li><strong>Subjective Discipline Referrals:</strong> "Defiance" infractions carry human grader bias, whereas unexcused absences are objective.</li>
+              <li><strong>Home Wi-Fi Logins:</strong> Measures domestic broadband access rather than academic effort.</li>
+            </ul>
+          </div>
+
+          <div class="phase-card">
+            <h4>Phase 2: Error Metric & 80% Rule Audit</h4>
+            <p>High aggregate accuracy frequently masks severe disparities in specific student cohorts:</p>
+            <ul>
+              <li><strong>False Positives (Type I):</strong> Incorrectly labeling an on-track student as at-risk, causing deficit stigma.</li>
+              <li><strong>False Negatives (Type II):</strong> Missing a student who urgently needs academic intervention.</li>
+            </ul>
+            <div class="calc-box">
+              <strong>Pilot Cohort Test:</strong><br>
+              Group A Pass Rate: <strong>70%</strong> | Group B Pass Rate: <strong>42%</strong><br>
+              Impact Ratio: 42 / 70 = <strong>60%</strong> (Below 80% threshold = Disparate Impact)
+            </div>
+          </div>
+
+          <div class="phase-card">
+            <h4>Phase 3: Human-in-the-Loop Governance</h4>
+            <p>Mandatory policy requirements before district adoption:</p>
+            <ol>
+              <li>Algorithmic risk tags must never trigger automated class schedule changes or punitive tracking.</li>
+              <li>Staff hold a right to explanation: counselors must see the top contributing factors behind any score.</li>
+              <li>Student records cannot be retained by third parties for commercial model training under FERPA.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="module-card sub-card">
+          <div class="card-head">
+            <div>
+              <span class="tech-tag">BENCH 4 // EXPERT AUDITOR BENCH</span>
+              <h3>Interactive Classification Threshold & Confusion Matrix</h3>
+            </div>
+            <span class="score-pill" id="cmVerdict">THRESHOLD: 0.50 (STANDARD)</span>
+          </div>
+
+          <div class="context-guide-box">
+            <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+            <p><strong>Concept:</strong> Binary classifiers evaluate probability outputs against a cutoff threshold. Shifting this threshold alters the trade-off between False Positives (stigmatizing safe students) and False Negatives (missing struggling students), directly shifting adverse impact ratios on protected cohorts.</p>
+            <div class="guide-steps">
+              <span><strong>Try it:</strong> Lower the cutoff to 0.25 to catch more struggling students, and watch False Positives surge, triggering an EEOC adverse impact violation.</span>
+            </div>
+          </div>
+          
+          <div class="split-sandbox">
+            <div class="hud-box">
+              <label class="hud-label">CLASSIFICATION CUTOFF THRESHOLD: <strong id="cmThresholdLbl">0.50</strong></label>
+              <input type="range" id="cmThresholdSlider" min="10" max="90" value="50" oninput="confusionMatrixLab.update(this.value)" class="range-slider">
+              
+              <div class="confusion-matrix-grid">
+                <div class="cm-cell true-pos">
+                  <small>TRUE POSITIVES</small>
+                  <strong id="cmTP">78</strong>
+                  <span class="cell-sub">At-Risk Correctly Aided</span>
+                </div>
+                <div class="cm-cell false-pos">
+                  <small>FALSE POSITIVES</small>
+                  <strong id="cmFP">22</strong>
+                  <span class="cell-sub">Safe Students Flagged</span>
+                </div>
+                <div class="cm-cell false-neg">
+                  <small>FALSE NEGATIVES</small>
+                  <strong id="cmFN">12</strong>
+                  <span class="cell-sub">Struggling Students Missed</span>
+                </div>
+                <div class="cm-cell true-neg">
+                  <small>TRUE NEGATIVES</small>
+                  <strong id="cmTN">88</strong>
+                  <span class="cell-sub">Safe Students Unflagged</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hud-box">
+              <div class="hud-row">
+                <small>MINORITY GROUP B ADVERSE RATIO</small>
+                <strong id="cmAdverseRatio">61.5%</strong>
+              </div>
+              <div class="hud-row highlight">
+                <small>LEGAL EEOC STATUS</small>
+                <strong id="cmLegalStatus" style="color: #ef4444;">VIOLATES 80% FOUR-FIFTHS RULE</strong>
+              </div>
+              <p id="cmPolicyRecommendation" class="caption-text">Higher cutoffs reduce false alarms on safe students but leave struggling students without timely support.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-panel">
+          <h4>Module 4 Capstone Decision Checkpoint</h4>
+          <p><strong>Recommendation Question:</strong> The vendor refuses to share training data or explain why students were flagged. What should the school board conclude?</p>
+          <div class="quiz-btn-row">
+            <button type="button" onclick="app.quiz(3, 0, this)">Reject deployment until independent bias audits, proxy stripping, and explainability safeguards are met</button>
+            <button type="button" onclick="app.quiz(3, 1, this)">Approve procurement immediately because 92% accuracy is sufficient</button>
+            <button type="button" onclick="app.quiz(3, 2, this)">Delete all student records to eliminate bias</button>
+          </div>
+          <div id="qfb3" class="quiz-feedback"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: KNIGHT HUB -->
+    <section id="tab-hub" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">CREDENTIALS PORTFOLIO</span>
+        <h2>Student Scholar Hub & Achievements</h2>
+        <p>All progress saves locally in your browser via localStorage without logins, accounts, or cookies.</p>
+      </div>
+
+      <div class="hub-grid">
+        <div class="module-card">
+          <div class="stat-circle">
+            <span id="hubLvlVal">1</span>
+            <small>LEVEL</small>
+          </div>
+          <div>
+            <h3>Accumulated Score: <span id="hubScoreVal">0</span> / 1000 XP</h3>
+            <div class="bar-track"><div id="hubFillBar" class="bar-fill" style="width: 0%;"></div></div>
+            <p class="summary-text">Complete modules or harvest hidden matrix runes to earn your certificate.</p>
+          </div>
+        </div>
+
+        <div class="module-card">
+          <h3>Curriculum Competencies</h3>
+          <ul class="comp-list">
+            <li><span>Tier 1: Apprentice Foundations</span><strong id="comp0">0%</strong></li>
+            <li><span>Tier 2: Alchemist Coordinates</span><strong id="comp1">0%</strong></li>
+            <li><span>Tier 3: Inquisitor Calculus</span><strong id="comp2">0%</strong></li>
+            <li><span>Tier 4: Governance & Audit</span><strong id="comp3">0%</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="diplomaBanner" class="diploma-card" style="display: none;">
+        <div>
+          <h3>AI Literacy Certification Verified</h3>
+          <p>Certifies verified completion of the NEXUS CITADEL machine learning and governance curriculum.</p>
+        </div>
+        <button type="button" class="btn-royal-gold" onclick="window.print()">Print Official Certificate</button>
+      </div>
+    </section>
+
+    <!-- TAB 9: REFERENCES -->
+    <section id="tab-refs" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">ACADEMIC DOCUMENTATION</span>
+        <h2>References</h2>
+        <p>System architecture standards and bibliographic citations.</p>
+      </div>
+
+      <div class="ref-grid">
+        <div class="module-card">
+          <h3>1. System Architecture</h3>
+          <p>Engineered using hand-written HTML5, modular CSS3, and vanilla JavaScript. Zero content management systems, template builders, or external runtime libraries were used. User progress is saved in client localStorage without requiring accounts or logins.</p>
+        </div>
+        <div class="module-card">
+          <h3>2. APA 7th Edition Citations</h3>
+          <ul class="ref-list">
+            <li>Vaswani, A., et al. (2017). <em>Attention Is All You Need</em>. Advances in Neural Information Processing Systems, 30.</li>
+            <li>Barocas, S., et al. (2023). <em>Fairness and Machine Learning: Limitations and Opportunities</em>. MIT Press.</li>
+            <li>National Institute of Standards and Technology. (2023). <em>AI Risk Management Framework (AI RMF 1.0)</em>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div><strong>NEXUS CITADEL</strong> // Machine Learning Lab</div>
+    <div><a href="javascript:void(0)" onclick="app.nav('refs')">References</a></div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
