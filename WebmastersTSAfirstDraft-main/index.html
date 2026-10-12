@@ -1,1511 +1,1066 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-:root {
-  --castle-dark: #0f172a;
-  --castle-stone: #1e293b;
-  --castle-accent: #334155;
-  --royal-blue: #2563eb;
-  --royal-purple: #6366f1;
-  --gold: #d97706;
-  --gold-light: #fef3c7;
-  --gold-hover: #b45309;
-  --emerald: #059669;
-  --crimson: #dc2626;
-  --bg-page: #090d16;
-  --bg-card: #131b2e;
-  --border: #283548;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --font-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, Menlo, Monaco, Consolas, monospace;
-
-  --tier-1-border: #0284c7;
-  --tier-2-border: #059669;
-  --tier-3-border: #d97706;
-  --tier-gov-border: #6366f1;
-  --tier-4-border: #dc2626;
-}
-
-body {
-  font-family: var(--font-serif);
-  background-color: var(--bg-page);
-  color: var(--text-main);
-  line-height: 1.6;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-#citadelCanvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none !important;
-  z-index: -999 !important;
-}
-
-.navbar {
-  height: 64px;
-  background: var(--castle-dark);
-  border-bottom: 2px solid rgba(217, 119, 6, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4%;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  color: #ffffff;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.brand-crest {
-  width: 36px;
-  height: 36px;
-}
-
-.crest-svg {
-  width: 100%;
-  height: 100%;
-}
-
-.brand-title {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sub-badge {
-  font-size: 9px;
-  font-family: var(--mono);
-  background: rgba(217, 119, 6, 0.2);
-  color: var(--gold);
-  padding: 1px 6px;
-  border-radius: 12px;
-  border: 1px solid rgba(217, 119, 6, 0.4);
-}
-
-.brand-sub {
-  font-size: 9px;
-  color: var(--text-muted);
-  font-family: var(--mono);
-  display: block;
-}
-
-.nav-links {
-  display: flex;
-  gap: 4px;
-}
-
-.nav-btn {
-  background: transparent;
-  border: none;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #cbd5e1;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.nav-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-}
-
-.nav-btn.active {
-  background: rgba(217, 119, 6, 0.25);
-  color: #ffffff;
-  border-bottom: 2px solid var(--gold);
-}
-
-.nav-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pill-tracker {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(217, 119, 6, 0.35);
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--gold-light);
-}
-
-.rune-glyph {
-  color: var(--gold);
-}
-
-.score-chip {
-  background: rgba(37, 99, 235, 0.2);
-  color: #93c5fd;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid rgba(37, 99, 235, 0.35);
-}
-
-.btn-fastpass {
-  background: var(--gold);
-  border: none;
-  color: #111827;
-  padding: 5px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-reset {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #cbd5e1;
-  padding: 5px 10px;
-  font-size: 11px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.castle-hero {
-  position: relative;
-  min-height: 520px;
-  background: linear-gradient(180deg, #090d16 0%, #151c2c 60%, #0f172a 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 80px 4% 100px;
-  border-radius: 12px;
-}
-
-.battlement-top-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 90px;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.battlement-bottom-svg {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 80px;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.night-moon {
-  position: absolute;
-  top: 60px;
-  right: 18%;
-  width: 58px;
-  height: 58px;
-  background: rgba(254, 243, 199, 0.85);
-  border-radius: 50%;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
-  z-index: 1;
-}
-
-.ambient-glow {
-  position: absolute;
-  top: -40px;
-  width: 180px;
-  height: 150%;
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.14) 0%, rgba(17, 24, 39, 0) 100%);
-  transform: rotate(-25deg);
-  pointer-events: none;
-  z-index: 1;
-  filter: blur(20px);
-}
-
-.glow-1 { left: 20%; }
-.glow-2 { left: 65%; }
-
-.companion-post {
-  position: absolute;
-  top: 20px;
-  width: 140px;
-  z-index: 20;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.post-left { left: 4%; }
-.post-right { right: 4%; }
-
-.archon-avatar {
-  width: 80px;
-  height: 95px;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
-  transition: transform 0.2s ease;
-}
-
-.companion-post:hover .archon-avatar {
-  transform: scale(1.08);
-}
-
-.archon-svg {
-  width: 100%;
-  height: 100%;
-}
-
-.archon-speech-tag {
-  background: #1e293b;
-  border: 1px solid var(--gold);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 11px;
-  color: var(--text-main);
-  text-align: center;
-  max-width: 170px;
-  margin-top: 4px;
-  line-height: 1.3;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.dragon-portal-badge {
-  position: absolute;
-  bottom: 25px;
-  left: 6%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(30, 41, 59, 0.95);
-  border: 2px solid #dc2626;
-  border-radius: 40px;
-  padding: 6px 14px 6px 6px;
-  z-index: 25;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
-}
-
-.dragon-portal-badge:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 22px rgba(220, 38, 38, 0.5);
-}
-
-.dragon-portal-svg {
-  width: 48px;
-  height: 48px;
-}
-
-.portal-callout strong {
-  display: block;
-  font-size: 12px;
-  color: #f87171;
-}
-
-.portal-callout span {
-  font-size: 10px;
-  color: #fca5a5;
-  font-family: var(--mono);
-}
-
-.hero-content {
-  position: relative;
-  z-index: 10;
-  text-align: center;
-  max-width: 760px;
-}
-
-.citadel-pill-badge {
-  display: inline-block;
-  background: #1e293b;
-  color: var(--gold-light);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 6px 16px;
-  border-radius: 20px;
-  border: 1px solid var(--gold);
-  margin-bottom: 18px;
-}
-
-.hero-title {
-  font-size: 52px;
-  line-height: 1.1;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: -1px;
-  margin-bottom: 16px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-}
-
-.hero-title span {
-  color: var(--gold);
-}
-
-.hero-subtitle {
-  font-size: 15px;
-  color: var(--text-muted);
-  line-height: 1.6;
-  max-width: 640px;
-  margin: 0 auto 26px;
-}
-
-.hero-subtitle strong {
-  color: #ffffff;
-}
-
-.hero-btn-row {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
-.btn-royal-gold {
-  background: var(--gold);
-  color: #111827;
-  border: none;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 12px 22px;
-  border-radius: 30px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
-  transition: all 0.15s ease;
-}
-
-.btn-royal-gold:hover {
-  background: var(--gold-hover);
-  transform: translateY(-2px);
-}
-
-.btn-royal-blue {
-  background: var(--royal-blue);
-  color: #ffffff;
-  border: none;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 12px 22px;
-  border-radius: 30px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-  transition: all 0.15s ease;
-}
-
-.btn-royal-blue:hover {
-  background: #1d4ed8;
-  transform: translateY(-2px);
-}
-
-.btn-royal-neutral {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  font-size: 13px;
-  font-weight: 700;
-  padding: 12px 22px;
-  border-radius: 30px;
-  cursor: pointer;
-}
-
-.btn-royal-neutral:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-}
-
-.scroll-cue {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(217, 119, 6, 0.4);
-  color: var(--gold-light);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.container-body {
-  width: 92%;
-  max-width: 1140px;
-  margin: 36px auto;
-  position: relative;
-  z-index: 10;
-}
-
-.tab-page {
-  display: none;
-}
-
-.tab-page.active {
-  display: block;
-}
-
-.section-title {
-  margin-bottom: 22px;
-}
-
-.section-title h2 {
-  font-size: 28px;
-  color: #ffffff;
-  margin: 6px 0;
-}
-
-.section-title p {
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.blueprint-tag {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--gold);
-  letter-spacing: 0.5px;
-}
-
-.tech-tag {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--gold);
-}
-
-.xp-tag {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--gold);
-}
-
-.roadmap-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.roadmap-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.roadmap-card:hover {
-  border-color: var(--gold);
-  transform: translateY(-2px);
-  background: #182236;
-}
-
-.roadmap-card.tier-1 { border-top: 3px solid var(--tier-1-border); }
-.roadmap-card.tier-2 { border-top: 3px solid var(--tier-2-border); }
-.roadmap-card.tier-3 { border-top: 3px solid var(--tier-3-border); }
-.roadmap-card.tier-gov { border-top: 3px solid var(--tier-gov-border); }
-.roadmap-card.tier-boss { border-top: 3px solid var(--crimson); }
-
-.card-step {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--gold);
-  margin-bottom: 6px;
-}
-
-.roadmap-card strong {
-  display: block;
-  font-size: 13px;
-  color: #ffffff;
-  margin-bottom: 4px;
-}
-
-.roadmap-card p {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.core-box {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: #1e293b;
-  border: 1px dashed var(--gold);
-  border-radius: 8px;
-  padding: 14px 18px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 10px;
-}
-
-.core-box:hover {
-  background: #24334a;
-  transform: translateY(-2px);
-}
-
-.core-box.collected {
-  border-style: solid;
-  border-color: #059669;
-}
-
-.core-glyph {
-  font-size: 22px;
-  color: var(--gold);
-}
-
-.module-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 22px;
-  margin-bottom: 22px;
-}
-
-.tier-card-1 { border-left: 4px solid var(--tier-1-border); }
-.tier-card-2 { border-left: 4px solid var(--tier-2-border); }
-.tier-card-3 { border-left: 4px solid var(--tier-3-border); }
-.tier-card-gov { border-left: 4px solid var(--tier-gov-border); }
-.tier-card-4 { border-left: 4px solid var(--tier-4-border); }
-
-.card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.summary-text {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 14px;
-}
-
-.archon-guide-inline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
-}
-
-.guide-mini-avatar {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-}
-
-.guide-mini-avatar svg {
-  width: 100%;
-  height: 100%;
-}
-
-.archon-guide-inline strong {
-  display: block;
-  font-size: 11px;
-  font-family: var(--mono);
-  color: var(--gold);
-}
-
-.archon-guide-inline p {
-  font-size: 11px;
-  color: #cbd5e1;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.accordion details {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin-bottom: 8px;
-}
-
-.accordion summary {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  cursor: pointer;
-  outline: none;
-}
-
-.details-content {
-  padding-top: 10px;
-  font-size: 12px;
-  color: #cbd5e1;
-  line-height: 1.7;
-}
-
-.visual-schematic-stage {
-  background: #090d16;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  margin: 12px 0;
-  text-align: center;
-}
-
-.schematic-header {
-  font-size: 10px;
-  font-family: var(--mono);
-  font-weight: 700;
-  color: var(--gold);
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
-}
-
-.schematic-canvas {
-  width: 100%;
-  max-width: 600px;
-  height: auto;
-  display: block;
-  margin: 0 auto;
-}
-
-.schematic-caption {
-  font-size: 10px;
-  color: #64748b;
-  font-family: var(--mono);
-  display: block;
-  margin-top: 6px;
-}
-
-.craft-pill-matrix {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  margin: 10px 0 14px;
-}
-
-.c-matrix-card {
-  background: #0f172a;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px;
-  text-align: center;
-}
-
-.c-matrix-card strong {
-  display: block;
-  font-size: 14px;
-  color: var(--gold);
-  font-family: var(--mono);
-}
-
-.c-matrix-card span {
-  display: block;
-  font-size: 11px;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.c-matrix-card small {
-  display: block;
-  font-size: 9px;
-  color: #94a3b8;
-  line-height: 1.2;
-  margin-top: 4px;
-}
-
-.split-math {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 10px 0;
-}
-
-.math-box {
-  background: #0f172a;
-  border: 1px solid var(--border);
-  padding: 8px 12px;
-  border-radius: 5px;
-  font-family: var(--mono);
-  font-size: 11px;
-}
-
-.math-box.highlight {
-  border-color: var(--gold);
-  color: var(--gold-light);
-  font-weight: 700;
-}
-
-.details-content code {
-  background: #090d16;
-  color: var(--gold-light);
-  font-family: var(--mono);
-  padding: 6px 10px;
-  border-radius: 5px;
-  display: block;
-  margin: 8px 0;
-}
-
-.details-content ul, .details-content ol {
-  padding-left: 20px;
-  margin: 6px 0;
-}
-
-.quiz-panel {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 16px;
-  margin-top: 14px;
-}
-
-.quiz-panel h4 {
-  font-size: 14px;
-  color: #ffffff;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 6px;
-}
-
-.checkpoint-item p {
-  font-size: 12px;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 8px;
-}
-
-.quiz-btn-row {
-  display: grid;
-  gap: 6px;
-}
-
-.quiz-btn-row button {
-  background: #0f172a;
-  border: 1px solid var(--border);
-  color: #cbd5e1;
-  padding: 9px 12px;
-  text-align: left;
-  font-size: 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.quiz-btn-row button:hover {
-  background: #1e293b;
-}
-
-.quiz-btn-row button.correct {
-  background: rgba(5, 150, 105, 0.25) !important;
-  border-color: #059669 !important;
-  color: #6ee7b7;
-  font-weight: 700;
-}
-
-.quiz-btn-row button.wrong {
-  background: rgba(220, 38, 38, 0.25) !important;
-  border-color: #dc2626 !important;
-  color: #fca5a5;
-}
-
-.quiz-feedback {
-  font-size: 11px;
-  font-weight: 600;
-  margin-top: 6px;
-}
-
-.gov-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.gov-box {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
-}
-
-.gov-step-num {
-  font-family: var(--mono);
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--gold);
-  margin-bottom: 4px;
-}
-
-.gov-box strong {
-  display: block;
-  font-size: 12px;
-  color: #ffffff;
-  margin-bottom: 4px;
-  font-family: var(--mono);
-}
-
-.gov-box p {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.lifecycle-pipeline {
-  display: flex;
-  gap: 8px;
-  margin: 12px 0;
-  flex-wrap: wrap;
-}
-
-.btn-pipeline {
-  background: #172138;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-family: var(--mono);
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-pipeline.active {
-  background: var(--royal-purple);
-  color: #ffffff;
-  border-color: var(--royal-purple);
-}
-
-.pipeline-display-card {
-  background: #0f172a;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 14px;
-}
-
-.pipeline-display-card h4 {
-  color: var(--gold-light);
-  font-size: 13px;
-  margin-bottom: 4px;
-}
-
-.pipeline-display-card p {
-  font-size: 12px;
-  color: #cbd5e1;
-}
-
-.context-guide-box {
-  background: #172138;
-  border: 1px solid var(--gold);
-  border-radius: 6px;
-  padding: 14px;
-  margin: 10px 0 16px;
-}
-
-.guide-badge {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--gold);
-  margin-bottom: 6px;
-}
-
-.context-guide-box p {
-  font-size: 12px;
-  color: #cbd5e1;
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-.guide-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.split-sandbox {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 18px;
-  align-items: center;
-  margin-top: 12px;
-}
-
-#vectorCanvas, #lossCanvas {
-  width: 100%;
-  background: #090d16;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  display: block;
-  cursor: crosshair;
-}
-
-.hud-box {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 14px;
-}
-
-.hud-label {
-  font-size: 11px;
-  font-family: var(--mono);
-  display: block;
-  margin-bottom: 6px;
-}
-
-.range-slider {
-  width: 100%;
-  margin-bottom: 8px;
-}
-
-.btn-inline-group {
-  display: flex;
-  gap: 8px;
-}
-
-.hud-row {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 6px;
-  margin-bottom: 8px;
-}
-
-.hud-row small {
-  display: block;
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-muted);
-}
-
-.hud-row strong {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: #ffffff;
-}
-
-.hud-row.highlight strong {
-  color: var(--gold);
-  font-size: 14px;
-}
-
-.caption-text {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.score-pill {
-  font-family: var(--mono);
-  font-weight: 700;
-  color: var(--gold);
-  font-size: 11px;
-}
-
-.battle-stats-row {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.boss-health-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: #fca5a5;
-}
-
-.health-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.boss-hp-track {
-  width: 140px;
-  height: 10px;
-  background: #334155;
-  border-radius: 5px;
-  overflow: hidden;
-  border: 1px solid #7f1d1d;
-}
-
-.boss-hp-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #f59e0b, #dc2626);
-  transition: width 0.3s ease;
-}
-
-.boss-hp-fill.player-hp {
-  background: linear-gradient(90deg, #38bdf8, #2563eb);
-}
-
-.instructions-banner {
-  background: #1e293b;
-  border: 1px solid var(--gold);
-  border-radius: 6px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: var(--gold-light);
-  margin: 10px 0;
-  line-height: 1.5;
-}
-
-.boss-arena-visual {
-  position: relative;
-  background: #090d16;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  margin: 12px 0;
-}
-
-#bossCombatCanvas {
-  width: 100%;
-  height: 220px;
-  display: block;
-}
-
-.boss-telemetry-hud {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: rgba(15, 23, 42, 0.9);
-  border-top: 1px solid #dc2626;
-  padding: 8px 14px;
-}
-
-.boss-telemetry-hud strong {
-  display: block;
-  font-size: 12px;
-  color: #f87171;
-}
-
-.boss-telemetry-hud p {
-  font-size: 11px;
-  color: #cbd5e1;
-  margin: 2px 0 0;
-}
-
-.tactical-action-console {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 14px;
-  margin-top: 10px;
-}
-
-.tactical-action-console h4 {
-  font-size: 13px;
-  color: #ffffff;
-  margin-bottom: 8px;
-}
-
-.tactical-btn-grid {
-  display: grid;
-  gap: 8px;
-}
-
-.tactical-btn {
-  background: #0f172a;
-  border: 1px solid var(--border);
-  color: #f8fafc;
-  padding: 10px 14px;
-  text-align: left;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.tactical-btn:hover {
-  background: #1e293b;
-  border-color: var(--gold);
-}
-
-.combat-log-console {
-  background: #090d16;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 14px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: #7dd3fc;
-  margin-top: 10px;
-}
-
-.prompt-toggle-row {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0;
-}
-
-.btn-head {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: #172138;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.btn-head.active {
-  background: var(--royal-blue);
-  color: #ffffff;
-  border-color: var(--royal-blue);
-}
-
-.dialogue-box-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: #0f172a;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.chat-message {
-  padding: 12px 16px;
-  border-radius: 8px;
-  line-height: 1.5;
-}
-
-.chat-message strong {
-  display: block;
-  font-size: 11px;
-  font-family: var(--mono);
-  margin-bottom: 4px;
-}
-
-.student-msg {
-  background: #172138;
-  border: 1px solid rgba(217, 119, 6, 0.4);
-  align-self: flex-start;
-  max-width: 85%;
-}
-
-.student-msg strong {
-  color: var(--gold);
-}
-
-.student-msg p {
-  font-size: 12px;
-  color: #cbd5e1;
-  font-style: italic;
-}
-
-.ai-msg {
-  background: #1e293b;
-  border: 1px solid rgba(37, 99, 235, 0.5);
-  align-self: flex-end;
-  max-width: 85%;
-}
-
-.ai-msg strong {
-  color: #93c5fd;
-}
-
-.ai-msg p {
-  font-size: 12px;
-  color: #f8fafc;
-}
-
-.audit-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin: 16px 0;
-}
-
-.phase-card {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 14px;
-}
-
-.phase-card h4 {
-  font-size: 13px;
-  margin-bottom: 6px;
-  color: var(--gold);
-}
-
-.phase-card p, .phase-card li {
-  font-size: 11px;
-  color: #cbd5e1;
-}
-
-.phase-card ul, .phase-card ol {
-  padding-left: 18px;
-  margin-top: 6px;
-}
-
-.calc-box {
-  background: #0f172a;
-  border: 1px solid var(--border);
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  margin-top: 8px;
-}
-
-.confusion-matrix-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.cm-cell {
-  background: #0f172a;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
-  text-align: center;
-}
-
-.cm-cell small {
-  display: block;
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-muted);
-}
-
-.cm-cell strong {
-  display: block;
-  font-size: 18px;
-  margin: 2px 0;
-}
-
-.cm-cell.true-pos strong, .cm-cell.true-neg strong {
-  color: #059669;
-}
-
-.cm-cell.false-pos strong, .cm-cell.false-neg strong {
-  color: #dc2626;
-}
-
-.cell-sub {
-  font-size: 9px;
-  color: var(--text-muted);
-  display: block;
-}
-
-.hub-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
-
-.stat-circle {
-  width: 54px;
-  height: 54px;
-  border: 3px solid var(--gold);
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-}
-
-.stat-circle span {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--gold);
-}
-
-.stat-circle small {
-  font-size: 7px;
-  font-family: var(--mono);
-  color: var(--text-muted);
-}
-
-.bar-track {
-  width: 100%;
-  height: 8px;
-  background: #1e293b;
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 8px 0;
-}
-
-.bar-fill {
-  height: 100%;
-  background: var(--gold);
-  transition: width 0.2s ease;
-}
-
-.comp-list {
-  list-style: none;
-}
-
-.comp-list li {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.diploma-card {
-  margin-top: 18px;
-  background: #172138;
-  border: 2px solid var(--gold);
-  border-radius: 10px;
-  padding: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.diploma-card h3 {
-  color: var(--gold);
-  font-size: 16px;
-}
-
-.diploma-card p {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.ref-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.ref-list {
-  padding-left: 18px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.footer {
-  height: 54px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 4%;
-  font-size: 11px;
-  color: var(--text-muted);
-  background: var(--castle-dark);
-  margin-top: auto;
-}
-
-.footer a {
-  color: var(--gold);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-@media (max-width: 860px) {
-  .hero-title { font-size: 36px; }
-  .roadmap-grid { grid-template-columns: 1fr 1fr; }
-  .split-sandbox, .audit-grid, .hub-grid, .ref-grid, .gov-grid, .craft-pill-matrix { grid-template-columns: 1fr; }
-  .companion-post { display: none; }
-}
-.lesson-dropdown {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin: 12px 0;
-  overflow: hidden;
-  transition: border-color 0.2s ease;
-}
-
-.lesson-dropdown[open] {
-  border-color: var(--gold);
-}
-
-.lesson-summary {
-  padding: 14px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #ffffff;
-  cursor: pointer;
-  background: #1e293b;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  user-select: none;
-  list-style: none;
-}
-
-.lesson-summary::-webkit-details-marker {
-  display: none;
-}
-
-.lesson-summary::after {
-  content: "▾";
-  font-size: 14px;
-  color: var(--gold);
-  transition: transform 0.2s ease;
-}
-
-.lesson-dropdown[open] .lesson-summary::after {
-  transform: rotate(180deg);
-}
-
-.dropdown-content {
-  padding: 16px 18px;
-  background: #131b2e;
-}
-
-.lesson-text-block {
-  background: #172138;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin: 12px 0;
-  line-height: 1.7;
-}
-
-.lesson-text-block p {
-  font-size: 12px;
-  color: #cbd5e1;
-  margin-bottom: 10px;
-}
-
-.lesson-text-block ul {
-  padding-left: 20px;
-  font-size: 12px;
-  color: #cbd5e1;
-  margin-bottom: 8px;
-}
-
-.lesson-text-block code {
-  background: #090d16;
-  color: var(--gold-light);
-  font-family: var(--mono);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS CITADEL // Machine Learning & Governance Lab</title>
+  <meta name="description" content="An interactive fortress AI laboratory, algorithmic ethics audit bench, and tactical dragon boss battle.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <canvas id="citadelCanvas" aria-hidden="true"></canvas>
+
+  <header class="navbar">
+    <div class="brand" onclick="app.nav('home')">
+      <div class="brand-crest">
+        <svg viewBox="0 0 36 36" class="crest-svg">
+          <path d="M6,6 L10,6 L10,10 L14,6 L18,6 L22,6 L26,10 L26,6 L30,6 L30,22 C30,28 18,34 18,34 C18,34 6,28 6,22 Z" fill="#1e293b" stroke="#d97706" stroke-width="2"/>
+          <circle cx="18" cy="18" r="4" fill="#f59e0b"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">NEXUS CITADEL <span class="sub-badge">AI LAB</span></div>
+        <small class="brand-sub">Machine Learning & Governance</small>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <button type="button" class="nav-btn active" data-tab="home" onclick="app.nav('home')">Citadel</button>
+      <button type="button" class="nav-btn" data-tab="curriculum" onclick="app.nav('curriculum')">Grimoire Tracks</button>
+      <button type="button" class="nav-btn" data-tab="governance" onclick="app.nav('governance')">AI Governance</button>
+      <button type="button" class="nav-btn" data-tab="sandboxes" onclick="app.nav('sandboxes')">Alchemical Benches</button>
+      <button type="button" class="nav-btn" data-tab="dragon" onclick="app.nav('dragon')">Trial of Ignis</button>
+      <button type="button" class="nav-btn" data-tab="socratic" onclick="app.nav('socratic')">Royal Debate</button>
+      <button type="button" class="nav-btn" data-tab="capstone" onclick="app.nav('capstone')">Citadel Audit</button>
+      <button type="button" class="nav-btn" data-tab="hub" onclick="app.nav('hub')">Knight Hub</button>
+      <button type="button" class="nav-btn" data-tab="refs" onclick="app.nav('refs')">References</button>
+    </nav>
+
+    <div class="nav-controls">
+      <div class="pill-tracker" title="Captured Runes">
+        <span class="rune-glyph">✧</span>
+        <span id="coreCounter">0/4 RUNES</span>
+      </div>
+      <div class="score-chip"><span id="hudXp">0</span> XP</div>
+      <button type="button" class="btn-fastpass" onclick="app.judgePass()" title="Instant unlock for evaluators">⚡ Fast-Pass</button>
+      <button type="button" class="btn-reset" onclick="app.reset()" title="Reset session state">Reset</button>
+    </div>
+  </header>
+
+  <main class="container-body">
+
+    <section id="tab-home" class="tab-page active">
+      <div class="castle-hero">
+        <div class="night-moon"></div>
+        <div class="ambient-glow glow-1"></div>
+        <div class="ambient-glow glow-2"></div>
+
+        <svg class="battlement-top-svg" viewBox="0 0 1440 160" preserveAspectRatio="none">
+          <path d="M0,0 L1440,0 L1440,50 L1380,50 L1380,20 L1320,20 L1320,50 L1200,50 L1200,20 L1140,20 L1140,50 L1020,50 L1020,20 L960,20 L960,50 L840,50 L840,20 L780,20 L780,50 L660,50 L660,20 L600,20 L600,50 L480,50 L480,20 L420,20 L420,50 L300,50 L300,20 L240,20 L240,50 L120,50 L120,20 L60,20 L60,50 L0,50 Z" fill="#0f172a"/>
+          <path d="M0,50 Q720,100 1440,50 L1440,80 Q720,130 0,80 Z" fill="#1e293b" opacity="0.6"/>
+        </svg>
+
+        <div class="companion-post post-left" onclick="companion.speak('prince')">
+          <div class="archon-avatar">
+            <svg viewBox="0 0 100 120" class="archon-svg">
+              <polygon points="35,28 42,16 50,24 58,16 65,28" fill="#d97706" stroke="#92400e" stroke-width="2"/>
+              <circle cx="50" cy="46" r="22" fill="#fed7aa"/>
+              <path d="M28,38 C32,20 68,20 72,38 C64,28 36,28 28,38 Z" fill="#1e293b"/>
+              <ellipse cx="43" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <ellipse cx="57" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <circle cx="43" cy="44" r="2.5" fill="#2563eb" id="princeEyeL"/>
+              <circle cx="57" cy="44" r="2.5" fill="#2563eb" id="princeEyeR"/>
+              <path d="M44,55 Q50,60 56,55" stroke="#78350f" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M30,68 L70,68 L78,110 L22,110 Z" fill="#3b82f6"/>
+              <polygon points="20,68 34,68 28,88" fill="#d97706"/>
+              <polygon points="80,68 66,68 72,88" fill="#d97706"/>
+            </svg>
+          </div>
+          <div class="archon-speech-tag" id="princeSpeech">
+            <strong>Prince Valen:</strong> "Look upon our battlements! Learn the math of neural networks before stepping into the arena."
+          </div>
+        </div>
+
+        <div class="companion-post post-right" onclick="companion.speak('princess')">
+          <div class="archon-avatar">
+            <svg viewBox="0 0 100 120" class="archon-svg">
+              <path d="M32,26 L50,12 L68,26 Q50,22 32,26" fill="#be123c" stroke="#d97706" stroke-width="2"/>
+              <path d="M24,42 C20,70 28,100 32,108 C36,70 32,50 36,36 C42,22 58,22 64,36 C68,50 64,70 68,108 C72,100 80,70 76,42 Z" fill="#1e1b4b"/>
+              <circle cx="50" cy="46" r="21" fill="#fed7aa"/>
+              <ellipse cx="43" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <ellipse cx="57" cy="44" rx="4" ry="5" fill="#ffffff"/>
+              <circle cx="43" cy="44" r="2.5" fill="#059669" id="princessEyeL"/>
+              <circle cx="57" cy="44" r="2.5" fill="#059669" id="princessEyeR"/>
+              <path d="M45,55 Q50,60 55,55" stroke="#9f1239" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M32,67 L68,67 L76,110 L24,110 Z" fill="#6366f1"/>
+              <path d="M42,67 L58,67 L55,110 L45,110 Z" fill="#d97706"/>
+            </svg>
+          </div>
+          <div class="archon-speech-tag" id="princessSpeech">
+            <strong>Princess Aurelia:</strong> "Ethical rules are our best defense. Automated models should never make life-changing calls without human review."
+          </div>
+        </div>
+
+        <div class="dragon-portal-badge" onclick="app.nav('dragon')">
+          <svg viewBox="0 0 120 120" class="dragon-portal-svg">
+            <defs>
+              <radialGradient id="dragonFlame" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#f59e0b"/>
+                <stop offset="60%" stop-color="#dc2626"/>
+                <stop offset="100%" stop-color="#450a0a"/>
+              </radialGradient>
+            </defs>
+            <circle cx="60" cy="60" r="54" fill="url(#dragonFlame)" stroke="#d97706" stroke-width="3"/>
+            <path d="M35,45 Q48,22 62,35 Q78,18 85,42 Q98,58 75,76 Q60,92 48,82 Q30,75 35,45 Z" fill="#0f172a"/>
+            <polygon points="45,26 50,38 40,36" fill="#d97706"/>
+            <polygon points="68,22 72,36 62,32" fill="#d97706"/>
+            <polygon points="72,50 82,52 74,56" fill="#fef08a"/>
+            <path d="M82,62 Q96,65 92,72 Q86,72 82,66" fill="#ea580c"/>
+          </svg>
+          <div class="portal-callout">
+            <strong id="portalDragonTitle">Ignis Dragon Arena</strong>
+            <span id="portalDragonStatus">🔒 Complete Modules to Unlock</span>
+          </div>
+        </div>
+
+        <div class="hero-content">
+          <div class="citadel-pill-badge">MACHINE LEARNING LAB</div>
+          <h1 class="hero-title">Untangling the<br><span>Mechanics of AI.</span></h1>
+          <p class="hero-subtitle">
+            Most people treat AI like an unpredictable new technology. We built this lab to demonstrate the behind the scenes: training scalar neurons, plotting multi-dimensional vector spaces, fixing exploding gradients, and etc.
+          </p>
+
+          <div class="hero-btn-row">
+            <button type="button" class="btn-royal-gold" onclick="app.nav('curriculum')">Open Grimoire Tracks</button>
+            <button type="button" class="btn-royal-blue" onclick="app.nav('governance')">AI Governance Suite</button>
+            <button type="button" class="btn-royal-neutral" onclick="app.nav('sandboxes')">Alchemical Sandboxes</button>
+            <button type="button" class="btn-royal-neutral" onclick="app.nav('dragon')">Dino vs. Dragon Raid ⚔️</button>
+          </div>
+
+          <button type="button" class="scroll-cue" onclick="app.nav('curriculum')">
+            Enter the Fortress Courtyard <span class="arrow-down">⌄</span>
+          </button>
+        </div>
+
+        <svg class="battlement-bottom-svg" viewBox="0 0 1440 120" preserveAspectRatio="none">
+          <path d="M0,40 Q360,90 720,40 Q1080,90 1440,40 L1440,120 L0,120 Z" fill="#1e293b"/>
+          <path d="M0,70 Q720,20 1440,70 L1440,120 L0,120 Z" fill="#0f172a"/>
+        </svg>
+      </div>
+
+      <div class="section-title" style="margin-top: 35px;">
+        <span class="blueprint-tag">FIELD INVESTIGATION ROADMAP</span>
+        <h2>The 5-Stage Learning Path</h2>
+        <p>Advance through core machine learning tracks, master governance frameworks, and earn your battle certification:</p>
+      </div>
+
+      <div class="roadmap-grid">
+        <div class="roadmap-card tier-1" onclick="app.nav('curriculum')">
+          <div class="card-step">TIER 1 // APPRENTICE</div>
+          <strong>Foundations & Scalars</strong>
+          <p>Weights, bias thresholds, and classical code vs. machine learning.</p>
+        </div>
+        <div class="roadmap-card tier-2" onclick="app.nav('curriculum')">
+          <div class="card-step">TIER 2 // ALCHEMIST</div>
+          <strong>Vector Geometry</strong>
+          <p>2D embeddings, cosine angles, and sub-word BPE tokenization.</p>
+        </div>
+        <div class="roadmap-card tier-3" onclick="app.nav('curriculum')">
+          <div class="card-step">TIER 3 // INQUISITOR</div>
+          <strong>Optimization Calculus</strong>
+          <p>Scaled self-attention matrices, loss slopes, and descent.</p>
+        </div>
+        <div class="roadmap-card tier-gov" onclick="app.nav('governance')">
+          <div class="card-step">TIER 4 // GOVERNOR</div>
+          <strong>AI Governance Frameworks</strong>
+          <p>NIST AI RMF, EU AI Act risk tiers, model cards, and drift audits.</p>
+        </div>
+        <div class="roadmap-card tier-boss" onclick="app.nav('dragon')">
+          <div class="card-step">FINALE // BOSS RAID</div>
+          <strong>The Trial of Ignis</strong>
+          <p>Pilot the AI Dino Mech into battle, answering model questions to defeat the dragon.</p>
+        </div>
+      </div>
+
+      <div class="core-box" id="coreBanner0" onclick="app.collectCore(0)">
+        <div class="core-glyph">✧</div>
+        <div>
+          <strong>Archon Rune I: Foundational Weight Tensor</strong>
+          <small>Click to secure this Apprentice milestone in your vault (+50 XP)</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CURRICULUM WITH INTERACTIVE LESSON DROPDOWNS -->
+    <section id="tab-curriculum" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">THE CITADEL GRIMOIRE</span>
+        <h2>Visual Machine Learning Tracks</h2>
+        <p>Click on any lesson dropdown below to reveal the interactive schematics, architectural flows, and complete explanations.</p>
+      </div>
+
+      <!-- TIER 1 -->
+      <div class="module-card tier-card-1">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">TIER 1 // APPRENTICE LEVEL</span>
+            <h3>Chamber 01: Classical Coding vs. Machine Learning</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">Learn how systems shift from explicit rule authoring to iterative parameter optimization.</p>
+
+        <div class="archon-guide-inline">
+          <div class="guide-mini-avatar prince">
+            <svg viewBox="0 0 40 40"><circle cx="20" cy="18" r="12" fill="#fed7aa"/><polygon points="12,10 16,4 20,8 24,4 28,10" fill="#d97706"/><circle cx="16" cy="16" r="2" fill="#2563eb"/><circle cx="24" cy="16" r="2" fill="#2563eb"/></svg>
+          </div>
+          <div>
+            <strong>Prince Valen's Tactical Note:</strong>
+            <p>Click on the lesson dropdowns below to unfold the diagrams and study how inputs scale across weights (W) and biases (b)!</p>
+          </div>
+        </div>
+
+        <!-- LESSON 1.1 DROPDOWN -->
+        <details class="lesson-dropdown" open>
+          <summary class="lesson-summary">Lesson 1.1: The Limits of if/else Statements</summary>
+          <div class="dropdown-content">
+            <div class="visual-schematic-stage">
+              <div class="schematic-header">ARCHITECTURAL DIAGRAM: DETERMINISTIC LOGIC VS. MACHINE LEARNING</div>
+              <svg viewBox="0 0 620 120" class="schematic-canvas">
+                <rect x="20" y="15" width="260" height="90" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+                <text x="150" y="42" fill="#f59e0b" font-size="12" font-weight="700" text-anchor="middle">TRADITIONAL PROGRAMMING</text>
+                <text x="150" y="66" fill="#cbd5e1" font-size="11" text-anchor="middle">Inputs + Written Rules</text>
+                <text x="150" y="88" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">&rarr; Static Answers</text>
+
+                <path d="M 290 60 L 325 60" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4"/>
+
+                <rect x="335" y="15" width="265" height="90" rx="8" fill="#1e293b" stroke="#059669" stroke-width="2"/>
+                <text x="467" y="42" fill="#10b981" font-size="12" font-weight="700" text-anchor="middle">MACHINE LEARNING</text>
+                <text x="467" y="66" fill="#cbd5e1" font-size="11" text-anchor="middle">Inputs (X) + True Labels (Y)</text>
+                <text x="467" y="88" fill="#fbbf24" font-size="12" font-weight="700" text-anchor="middle">&rarr; Learned Parameters (W, b)</text>
+              </svg>
+              <div class="schematic-caption">Figure 1.1: Empirical optimization inverts rule formulation by deriving weights directly from target outcomes.</div>
+            </div>
+
+            <div class="lesson-text-block">
+              <p>In your intro computer science class, you write deterministic code. If you want to check if a student passed a quiz, you write an explicit check: <code>if (score >= 70) return "Pass";</code>. You write the logic, feed in the numbers, and the computer simply follows your instructions word for word.</p>
+              <p>This works great for simple tasks, but it completely breaks down when you try to write rules for messy real-world problems. For example, think about trying to write <code>if/else</code> statements to recognize handwritten numbers on an envelope. Every person draws the number "4" with different slant angles, pen pressures, and stroke gaps. If you tried to write an <code>if</code> statement for every possible pixel variation, you would need billions of lines of code, and a single odd handwriting quirk would still crash the program.</p>
+              <p>Machine learning flips this relationship upside down. Instead of hand-coding the rules yourself, you give the computer thousands of scanned images (the inputs, X) paired with the correct number label (the targets, Y). The model starts by making random guesses and iteratively adjusts its internal dials until it discovers the visual patterns on its own.</p>
+              <code>prediction = activation(W * x + b)</code>
+            </div>
+          </div>
+        </details>
+
+        <!-- LESSON 1.2 DROPDOWN -->
+        <details class="lesson-dropdown">
+          <summary class="lesson-summary">Lesson 1.2: How a Single Neuron Makes a Decision</summary>
+          <div class="dropdown-content">
+            <div class="visual-schematic-stage">
+              <div class="schematic-header">CIRCUIT DIAGRAM: THE SCALAR PERCEPTRON (W * X + B)</div>
+              <svg viewBox="0 0 620 130" class="schematic-canvas">
+                <circle cx="70" cy="35" r="18" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+                <text x="70" y="40" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">x1</text>
+                <circle cx="70" cy="95" r="18" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+                <text x="70" y="100" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">x2</text>
+
+                <line x1="88" y1="35" x2="245" y2="65" stroke="#f59e0b" stroke-width="2"/>
+                <text x="155" y="42" fill="#f59e0b" font-size="11" font-weight="700">w1</text>
+                <line x1="88" y1="95" x2="245" y2="65" stroke="#f59e0b" stroke-width="2"/>
+                <text x="155" y="92" fill="#f59e0b" font-size="11" font-weight="700">w2</text>
+
+                <circle cx="275" cy="65" r="30" fill="#0f172a" stroke="#d97706" stroke-width="2.5"/>
+                <text x="275" y="64" fill="#fef08a" font-size="18" font-weight="700" text-anchor="middle">&Sigma;</text>
+                <text x="275" y="80" fill="#94a3b8" font-size="10" text-anchor="middle">+ bias b</text>
+
+                <line x1="305" y1="65" x2="400" y2="65" stroke="#94a3b8" stroke-width="2"/>
+                <rect x="400" y="38" width="70" height="54" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+                <path d="M 412 76 L 435 76 L 435 52 L 458 52" stroke="#10b981" stroke-width="2.5" fill="none"/>
+
+                <line x1="470" y1="65" x2="540" y2="65" stroke="#10b981" stroke-width="2.5"/>
+                <circle cx="555" cy="65" r="15" fill="#059669"/>
+                <text x="555" y="70" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle">y</text>
+              </svg>
+              <div class="schematic-caption">Figure 1.2: A single perceptron scales features through weights, offsets threshold with bias, and computes activation.</div>
+            </div>
+
+            <div class="lesson-text-block">
+              <p>The fundamental building block behind every modern neural network is called a <strong>perceptron</strong>. It takes one or more numbers as input, does simple arithmetic, and decides whether to send a signal forward.</p>
+              <p>The math breaks down into three basic pieces:</p>
+              <ul>
+                <li><strong>Input (x):</strong> The raw data point the model is looking at (for example, how many study hours a student logged).</li>
+                <li><strong>Weight (w):</strong> A multiplier that determines how much that input matters. A large positive weight means the feature strongly pushes the model toward a positive prediction, while a weight near zero means the model essentially ignores that input.</li>
+                <li><strong>Bias (b):</strong> A constant number added to the total. Think of bias as shifting the starting threshold. If the bias is a negative number, the model is cautious and needs stronger inputs before it fires. If the bias is positive, the neuron triggers easily.</li>
+              </ul>
+              <p>The neuron combines them using the formula <code>output = activation(w * x + b)</code>. When the calculated sum crosses the decision threshold, the neuron activates. Training an AI model is simply the process of testing millions of examples to find the optimal numbers for every <code>w</code> and <code>b</code>.</p>
+            </div>
+          </div>
+        </details>
+
+        <div class="quiz-panel">
+          <h4>Tier 1 Checkpoint: Conceptual Foundations</h4>
+          <div class="checkpoint-item">
+            <p><strong>1.1:</strong> In the perceptron equation <code>w * x + b</code>, what is the main job of the bias (b)?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(0, 0, this)">It shifts the decision threshold up or down independently of the input</button>
+              <button type="button" onclick="app.quiz(0, 1, this)">It deletes outliers from the training data</button>
+              <button type="button" onclick="app.quiz(0, 2, this)">It speeds up the computer processor</button>
+            </div>
+            <div id="qfb0" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 2 -->
+      <div class="module-card tier-card-2">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">TIER 2 // ALCHEMIST LEVEL</span>
+            <h3>Chamber 02: High-Dimensional Vectors & The C.R.A.F.T. Standard</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">Translating raw text strings into geometric vector spaces, with systematic prompt calibration.</p>
+
+        <div class="archon-guide-inline">
+          <div class="guide-mini-avatar princess">
+            <svg viewBox="0 0 40 40"><circle cx="20" cy="18" r="12" fill="#fed7aa"/><path d="M12,12 L20,4 L28,12 Z" fill="#e11d48"/><circle cx="16" cy="16" r="2" fill="#059669"/><circle cx="24" cy="16" r="2" fill="#059669"/></svg>
+          </div>
+          <div>
+            <strong>Princess Aurelia's Linguistic Insight:</strong>
+            <p>Expand the dropdowns below to see how geometric vector embeddings allow computers to calculate word meanings and analogies!</p>
+          </div>
+        </div>
+
+        <!-- LESSON 2.1 DROPDOWN -->
+        <details class="lesson-dropdown" open>
+          <summary class="lesson-summary">Lesson 2.1: How Words Become Coordinates in Vector Space</summary>
+          <div class="dropdown-content">
+            <div class="visual-schematic-stage">
+              <div class="schematic-header">VECTOR SPACE PROJECTION: SEMANTIC GEOMETRY</div>
+              <svg viewBox="0 0 620 150" class="schematic-canvas">
+                <line x1="60" y1="130" x2="560" y2="130" stroke="#475569" stroke-width="2"/>
+                <line x1="60" y1="130" x2="60" y2="20" stroke="#475569" stroke-width="2"/>
+                <text x="550" y="145" fill="#94a3b8" font-size="10">Dimension X</text>
+                <text x="25" y="30" fill="#94a3b8" font-size="10">Dim Y</text>
+
+                <line x1="60" y1="130" x2="230" y2="90" stroke="#0284c7" stroke-width="2"/>
+                <circle cx="230" cy="90" r="6" fill="#38bdf8"/>
+                <text x="240" y="94" fill="#38bdf8" font-size="12" font-weight="700">v(Man)</text>
+
+                <line x1="60" y1="130" x2="370" y2="50" stroke="#f59e0b" stroke-width="2"/>
+                <circle cx="370" cy="50" r="6" fill="#facc15"/>
+                <text x="380" y="54" fill="#facc15" font-size="12" font-weight="700">v(King)</text>
+
+                <path d="M 230 90 L 370 50" stroke="#dc2626" stroke-width="2" stroke-dasharray="3"/>
+                <text x="300" y="62" fill="#f87171" font-size="10">+ Royalty Vector</text>
+
+                <circle cx="270" cy="115" r="6" fill="#ec4899"/>
+                <text x="280" y="119" fill="#ec4899" font-size="12" font-weight="700">v(Woman)</text>
+
+                <path d="M 270 115 L 410 75" stroke="#dc2626" stroke-width="2" stroke-dasharray="3"/>
+                <circle cx="410" cy="75" r="6" fill="#a855f7"/>
+                <text x="420" y="79" fill="#c084fc" font-size="12" font-weight="700">v(Queen)</text>
+              </svg>
+              <div class="schematic-caption">Figure 2.1: Semantic linear displacement: subtracting masculine attributes and adding feminine attributes translates King into Queen.</div>
+            </div>
+
+            <div class="lesson-text-block">
+              <p>Computers cannot read definitions or understand the emotional tone of text. To process words with math, language models convert every word or sub-word into a list of numbers called an <strong>embedding vector</strong>.</p>
+              <p>Think of an embedding as a coordinate on a giant graph. On a simple 2D graph, you have an X and Y coordinate like <code>[0.4, 0.8]</code>. In a real model like GPT or BERT, each word lives in a coordinate space with hundreds of dimensions (often 512, 768, or 1536 axes). Each axis quietly tracks an abstract linguistic trait, like how formal, active, physical, or royal a concept is.</p>
+              <p>Because meaning is stored as geometry, words that share similar contexts naturally clump together in space. We compare their closeness using <strong>Cosine Similarity</strong>, which measures the angle between the two arrows pointing from the origin:</p>
+              <code>Cosine Similarity = (Vector A • Vector B) / (Magnitude A * Magnitude B)</code>
+              <p>A score of 1.0 means the vectors point in the identical direction, while 0.0 means they are at a 90-degree angle with zero shared context. This geometric arrangement makes vector algebra possible: taking the vector for <em>King</em>, subtracting the direction for <em>Man</em>, and adding <em>Woman</em> lands right next to the coordinate for <em>Queen</em>.</p>
+            </div>
+          </div>
+        </details>
+
+        <!-- LESSON 2.2 DROPDOWN -->
+        <details class="lesson-dropdown">
+          <summary class="lesson-summary">Lesson 2.2: The C.R.A.F.T. Prompt Engineering Standard</summary>
+          <div class="dropdown-content">
+            <div class="visual-schematic-stage">
+              <div class="schematic-header">THE C.R.A.F.T. CALIBRATION MATRIX</div>
+              <div class="craft-pill-matrix">
+                <div class="c-matrix-card"><strong>C</strong><span>Context</span><small>Syllabus topic, prior knowledge & bounds</small></div>
+                <div class="c-matrix-card"><strong>R</strong><span>Role</span><small>Expert tutor persona & explicit voice</small></div>
+                <div class="c-matrix-card"><strong>A</strong><span>Action</span><small>Clear directive verb (contrast/audit)</small></div>
+                <div class="c-matrix-card"><strong>F</strong><span>Format</span><small>Structural constraints (table/schema)</small></div>
+                <div class="c-matrix-card"><strong>T</strong><span>Target</span><small>Cognitive depth & specific grade level</small></div>
+              </div>
+              <div class="schematic-caption">Figure 2.2: The five structural boundaries that eliminate hallucinations and calibrate prompt responses.</div>
+            </div>
+
+            <div class="lesson-text-block">
+              <p>Large language models do not think or check facts like a search engine; they predict the next most probable word based on statistical patterns. If you give a model a vague prompt like <em>"tell me about mitosis,"</em> it gives you a broad, unhelpful summary because it averages across the entire internet.</p>
+              <p>To turn generative models into accurate study tools, you need to apply clear guardrails using the <strong>C.R.A.F.T.</strong> framework:</p>
+              <ul>
+                <li><strong>Context:</strong> Set the exact classroom scope (e.g., <em>"AP Biology Unit 2 cell division exam prep"</em>). This prevents the AI from giving elementary school overviews or college-level biochemistry tangents.</li>
+                <li><strong>Role:</strong> Give the AI an explicit persona (e.g., <em>"Act as a strict AP science teacher"</em>). This forces a serious, pedagogical tone.</li>
+                <li><strong>Action:</strong> Use an unambiguous directive verb (e.g., <em>"Contrast prophase and anaphase using bullet points"</em>). Avoid passive verbs like "write about."</li>
+                <li><strong>Format:</strong> Dictate the layout (e.g., <em>"A 3-column table comparing chromosome position, spindle attachment, and phase order"</em>). Structured formats keep the AI focused and cut down on conversational filler.</li>
+                <li><strong>Target Audience:</strong> Define your skill level (e.g., <em>"Written for a 10th-grade honors student"</em>). This calibrates the reading level and ensures the response uses accurate terminology without drowning in jargon.</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+
+        <div class="quiz-panel">
+          <h4>Tier 2 Checkpoint: Vector Geometry & Prompting</h4>
+          <div class="checkpoint-item">
+            <p><strong>2.1:</strong> If two word vectors have a Cosine Similarity score of 0.0, what does that mean?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(1, 0, this)">The vectors point in completely opposite directions</button>
+              <button type="button" onclick="app.quiz(1, 1, this)">The vectors are at a 90-degree angle, showing no semantic relationship</button>
+              <button type="button" onclick="app.quiz(1, 2, this)">The words share the exact same definition</button>
+            </div>
+            <div id="qfb1" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 3 -->
+      <div class="module-card tier-card-3">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">TIER 3 // INQUISITOR (ADVANCED)</span>
+            <h3>Chamber 03: Scaled Self-Attention & Gradient Descent Calculus</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">The linear algebra of Transformer multi-head attention and loss gradient minimization.</p>
+
+        <!-- LESSON 3.1 DROPDOWN -->
+        <details class="lesson-dropdown" open>
+          <summary class="lesson-summary">Lesson 3.1: How the Transformer Attention Mechanism Works</summary>
+          <div class="dropdown-content">
+            <div class="visual-schematic-stage">
+              <div class="schematic-header">TRANSFORMER ATTENTION ARCHITECTURE: Q, K, V MATMUL FLOW</div>
+              <svg viewBox="0 0 620 130" class="schematic-canvas">
+                <rect x="30" y="30" width="85" height="35" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+                <text x="72" y="52" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">Queries (Q)</text>
+
+                <rect x="30" y="75" width="85" height="35" rx="5" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+                <text x="72" y="97" fill="#f59e0b" font-size="11" font-weight="700" text-anchor="middle">Keys (K^T)</text>
+
+                <line x1="115" y1="47" x2="180" y2="65" stroke="#94a3b8" stroke-width="2"/>
+                <line x1="115" y1="92" x2="180" y2="65" stroke="#94a3b8" stroke-width="2"/>
+                <circle cx="205" cy="65" r="20" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5"/>
+                <text x="205" y="70" fill="#ffffff" font-size="14" font-weight="700" text-anchor="middle">&times;</text>
+
+                <line x1="225" y1="65" x2="280" y2="65" stroke="#94a3b8" stroke-width="2"/>
+                <rect x="280" y="47" width="80" height="36" rx="5" fill="#1e293b" stroke="#d97706" stroke-width="1.5"/>
+                <text x="320" y="69" fill="#fef08a" font-size="10" text-anchor="middle">Scale &radic;d_k</text>
+
+                <line x1="360" y1="65" x2="400" y2="65" stroke="#94a3b8" stroke-width="2"/>
+                <rect x="400" y="47" width="70" height="36" rx="5" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+                <text x="435" y="69" fill="#10b981" font-size="11" font-weight="700" text-anchor="middle">Softmax</text>
+
+                <rect x="400" y="92" width="70" height="28" rx="5" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+                <text x="435" y="110" fill="#c084fc" font-size="10" font-weight="700" text-anchor="middle">Values (V)</text>
+
+                <line x1="470" y1="65" x2="510" y2="80" stroke="#94a3b8" stroke-width="2"/>
+                <line x1="470" y1="106" x2="510" y2="80" stroke="#94a3b8" stroke-width="2"/>
+                <rect x="510" y="60" width="85" height="40" rx="5" fill="#059669"/>
+                <text x="552" y="84" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">Attention</text>
+              </svg>
+              <div class="schematic-caption">Figure 3.1: Matrix attention pipeline routing affinity weights through normalized Softmax distributions.</div>
+            </div>
+
+            <div class="lesson-text-block">
+              <p>Before Transformers were invented in 2017, language models read sentences one word at a time in order. By the time they reached word 300 in an essay, the early words had mathematically faded from memory—a notorious issue called the vanishing gradient problem.</p>
+              <p>The Transformer solved this by processing all words in a sentence at the exact same time using <strong>Scaled Dot-Product Attention</strong>:</p>
+              <code>Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V</code>
+              <p>Think of it like three matrices coordinating in parallel:</p>
+              <ul>
+                <li><strong>Queries (Q):</strong> What the current word is actively looking for to understand its context.</li>
+                <li><strong>Keys (K):</strong> The label or tag on every other word in the passage that explains what it offers.</li>
+                <li><strong>Values (V):</strong> The actual substantive information contained in each word.</li>
+              </ul>
+              <p>The model multiplies <code>Q * K^T</code> to calculate how relevant every word is to every other word simultaneously. Because multiplying large matrices can create massive numbers that cause the softmax function to plateau, the equation divides by <code>sqrt(d_k)</code> (the square root of the key dimension). This keeps gradients healthy so the model can learn efficiently.</p>
+            </div>
+          </div>
+        </details>
+
+        <!-- LESSON 3.2 DROPDOWN -->
+        <details class="lesson-dropdown">
+          <summary class="lesson-summary">Lesson 3.2: Finding the Lowest Error with Gradient Descent</summary>
+          <div class="dropdown-content">
+            <div class="visual-schematic-stage">
+              <div class="schematic-header">GRADIENT DESCENT LOSS BOWL CONVERGENCE</div>
+              <svg viewBox="0 0 620 130" class="schematic-canvas">
+                <path d="M 100 25 Q 310 145 520 25" stroke="#38bdf8" stroke-width="2.5" fill="none"/>
+                <circle cx="310" cy="85" r="6" fill="#10b981"/>
+                <text x="310" y="110" fill="#10b981" font-size="10" text-anchor="middle">Global Minimum (Loss = 0)</text>
+
+                <circle cx="450" cy="48" r="5" fill="#f59e0b"/>
+                <path d="M 450 48 Q 395 80 365 72" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3"/>
+                <circle cx="365" cy="72" r="4" fill="#facc15"/>
+                <text x="460" y="40" fill="#facc15" font-size="9">Controlled Step (&alpha; = 0.2)</text>
+
+                <circle cx="150" cy="55" r="5" fill="#ef4444"/>
+                <path d="M 150 55 Q 310 -25 480 38" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3"/>
+                <text x="210" y="16" fill="#f87171" font-size="9">Exploding Overshoot (&alpha; &gt; 1.0)</text>
+              </svg>
+              <div class="schematic-caption">Figure 3.2: Error minimization along a parabolic bowl; excessive step sizes overshoot the minimum into divergence.</div>
+            </div>
+
+            <div class="lesson-text-block">
+              <p>Whenever an AI model makes a prediction, we measure how far off it was using a <strong>loss function</strong>. If the model makes terrible predictions, the loss score is high. If it guesses accurately, the loss is close to zero. We visualize this error landscape as a smooth bowl.</p>
+              <p>Training an AI means rolling a marble down that bowl until it settles at the lowest point, called the <strong>global minimum</strong>. This process is called <strong>Gradient Descent</strong>:</p>
+              <code>new_weight = old_weight - learning_rate * slope</code>
+              <p>The derivative calculates the steepness of the slope at the marble's current position, and the <strong>learning rate</strong> sets how big of a step to take downhill:</p>
+              <ul>
+                <li>If the learning rate is too small (e.g., 0.0001), training takes forever and wastes huge amounts of computing power.</li>
+                <li>If the learning rate is set too high (e.g., 1.5), the marble takes giant leaps, overshooting the bottom of the bowl and bouncing higher and higher. In machine learning, this is called an <strong>exploding gradient</strong>, and it ruins the model's training run.</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+
+        <div class="quiz-panel">
+          <h4>Tier 3 Checkpoint: Attention Matrices & Calculus</h4>
+          <div class="checkpoint-item">
+            <p><strong>3.1:</strong> Why does the attention formula divide by <code>sqrt(d_k)</code>?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(2, 0, this)">To keep dot products from getting too large and causing near-zero gradients in softmax</button>
+              <button type="button" onclick="app.quiz(2, 1, this)">To round decimal numbers into integers</button>
+              <button type="button" onclick="app.quiz(2, 2, this)">To compress the text file size on the hard drive</button>
+            </div>
+            <div id="qfb2" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-governance" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">GOVERNANCE & TRUSTWORTHY SYSTEMS</span>
+        <h2>AI Governance: Risk Frameworks & Compliance</h2>
+        <p>Examine regulatory standards for machine learning, including the NIST AI Risk Management Framework and the EU AI Act.</p>
+      </div>
+
+      <div class="module-card tier-card-gov">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">FRAMEWORK 01 // RISK MANAGEMENT</span>
+            <h3>The NIST AI Risk Management Framework (AI RMF 1.0)</h3>
+          </div>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">The National Institute of Standards and Technology outlines four core operational functions:</p>
+
+        <div class="gov-grid">
+          <div class="gov-box">
+            <div class="gov-step-num">01</div>
+            <strong>GOVERN</strong>
+            <p>Sets accountability rules, safety policies, and transparent documentation for how AI is used.</p>
+          </div>
+          <div class="gov-box">
+            <div class="gov-step-num">02</div>
+            <strong>MAP</strong>
+            <p>Identifies where the model will be deployed, who it affects, and where training data came from.</p>
+          </div>
+          <div class="gov-box">
+            <div class="gov-step-num">03</div>
+            <strong>MEASURE</strong>
+            <p>Uses tests and math to check for accuracy, demographic bias, and performance drift over time.</p>
+          </div>
+          <div class="gov-box">
+            <div class="gov-step-num">04</div>
+            <strong>MANAGE</strong>
+            <p>Allocates resources to fix risks, monitor errors, and keep human oversight in place.</p>
+          </div>
+        </div>
+
+        <div class="accordion" style="margin-top: 18px;">
+          <details open>
+            <summary>The EU AI Act: Risk Classification Structure</summary>
+            <div class="details-content">
+              <ul>
+                <li><strong>Unacceptable Risk (Prohibited):</strong> Social credit scoring, behavioral manipulation targeting kids, and mass untargeted facial scanning. <em>Banned completely.</em></li>
+                <li><strong>High Risk (Strictly Regulated):</strong> Systems affecting critical infrastructure, school admissions/grading, hiring algorithms, and law enforcement. <em>Requires bias audits, logging, and human oversight.</em></li>
+                <li><strong>Transparency Risk:</strong> Synthetic media and chatbots. <em>Must clearly tell users they are interacting with AI.</em></li>
+                <li><strong>Minimal Risk:</strong> Video game AI, spam filters, and route navigation. <em>Operates under normal software standards.</em></li>
+              </ul>
+            </div>
+          </details>
+
+          <details>
+            <summary>Interactive Governance Lifecycle Inspector</summary>
+            <div class="details-content">
+              <p>Select a lifecycle stage to review its required validation checkpoints:</p>
+              <div class="lifecycle-pipeline">
+                <button type="button" class="btn-pipeline active" onclick="govBench.inspect(0)">1. Data Lineage</button>
+                <button type="button" class="btn-pipeline" onclick="govBench.inspect(1)">2. Model Card</button>
+                <button type="button" class="btn-pipeline" onclick="govBench.inspect(2)">3. Red-Teaming</button>
+                <button type="button" class="btn-pipeline" onclick="govBench.inspect(3)">4. Drift Telemetry</button>
+              </div>
+              <div class="pipeline-display-card" id="govPipelineCard">
+                <h4 id="govPipeTitle">1. Training Data Provenance & Lineage</h4>
+                <p id="govPipeDesc">Auditors verify data collection licenses, scrub student identifiers under FERPA guidelines, and check representation ratios across demographic groups to prevent baked-in historical bias.</p>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="quiz-panel">
+          <h4>Governance Checkpoint: Risk Assessment</h4>
+          <div class="checkpoint-item">
+            <p><strong>Gov 1.1:</strong> Under the EU AI Act and NIST frameworks, how is automated student dropout forecasting software classified?</p>
+            <div class="quiz-btn-row">
+              <button type="button" onclick="app.quiz(4, 0, this)">High Risk: It directly affects student academic opportunity and requires mandatory bias audits and human oversight</button>
+              <button type="button" onclick="app.quiz(4, 1, this)">Minimal Risk: Educational software is exempt from compliance frameworks</button>
+              <button type="button" onclick="app.quiz(4, 2, this)">Unacceptable Risk: All computer algorithms in schools are legally prohibited</button>
+            </div>
+            <div id="qfb4" class="quiz-feedback"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-sandboxes" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">ALCHEMICAL BENCHES</span>
+        <h2>Progressive Diagnostic Sandboxes</h2>
+        <p>Interactive tools arranged in increasing order of mathematical complexity, featuring clear diagnostic context.</p>
+      </div>
+
+      <!-- TIER 1 BENCH -->
+      <div class="module-card tier-card-1">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">BENCH 1 // APPRENTICE LEVEL</span>
+            <h3>1. Scalar Weight & Threshold Balancer</h3>
+          </div>
+          <span class="score-pill" id="b1Status">STATE: INACTIVE</span>
+        </div>
+
+        <div class="context-guide-box">
+          <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+          <p><strong>Concept:</strong> Demonstrates single-input linear weighting (w) and threshold bias shifting (b). Shows how the equation <code>z = w * x + b</code> crosses zero to trigger an active neuron output.</p>
+          <div class="guide-steps">
+            <span><strong>Try it:</strong> Set input x to 8.0 to see the neuron fire. Then shift bias b downward to see how a stricter threshold suppresses triggers.</span>
+          </div>
+        </div>
+
+        <div class="split-sandbox">
+          <div class="hud-box">
+            <label class="hud-label">INPUT FEATURE (x): <strong id="lblB1X">5.0</strong></label>
+            <input type="range" id="sliderB1X" min="0" max="100" value="50" oninput="tier1Bench.update()" class="range-slider">
+            <label class="hud-label">SYNAPTIC WEIGHT (w): <strong id="lblB1W">1.0</strong></label>
+            <input type="range" id="sliderB1W" min="-20" max="20" value="10" oninput="tier1Bench.update()" class="range-slider">
+            <label class="hud-label">THRESHOLD BIAS (b): <strong id="lblB1B">-4.0</strong></label>
+            <input type="range" id="sliderB1B" min="-100" max="50" value="-40" oninput="tier1Bench.update()" class="range-slider">
+          </div>
+          <div class="hud-box">
+            <div class="hud-row">
+              <small>AFFINE SUM (z = w*x + b)</small>
+              <strong id="b1Sum">1.00</strong>
+            </div>
+            <div class="hud-row highlight">
+              <small>ACTIVATION STATE</small>
+              <strong id="b1Output">FIRED (1.0)</strong>
+            </div>
+            <p class="caption-text" id="b1Explanation">Neuron is active. The calculated affine sum exceeds threshold zero.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 2 BENCH -->
+      <div class="module-card tier-card-2">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">BENCH 2 // ALCHEMIST LEVEL</span>
+            <h3>2. 2D Cartesian Vector Space Explorer</h3>
+          </div>
+          <button type="button" class="btn-royal-gold" onclick="vectorExplorer.snapAnalogy()">Solve: King - Man + Woman</button>
+        </div>
+
+        <div class="context-guide-box">
+          <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+          <p><strong>Concept:</strong> Visualizes word embeddings on a 2D Cartesian grid. Measures Cosine Similarity using vector dot products, showing how distance reflects meaning.</p>
+          <div class="guide-steps">
+            <span><strong>Try it:</strong> Drag King and Queen closer together to watch Cosine Similarity rise. Click Solve to watch vector math snap directly to the target word.</span>
+          </div>
+        </div>
+
+        <div class="split-sandbox">
+          <canvas id="vectorCanvas" width="460" height="230"></canvas>
+          <div class="hud-box">
+            <div class="hud-row">
+              <small>WORD VECTOR A</small>
+              <strong id="vLblA">King [0.65, 0.72]</strong>
+            </div>
+            <div class="hud-row">
+              <small>WORD VECTOR B</small>
+              <strong id="vLblB">Queen [0.60, 0.80]</strong>
+            </div>
+            <div class="hud-row highlight">
+              <small>COSINE SIMILARITY SCORE</small>
+              <strong id="vSimVal">0.985</strong>
+            </div>
+            <p id="vStatusTxt" class="caption-text">Drag coordinates to observe real-time vector angles and similarity changes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 3 BENCH -->
+      <div class="module-card tier-card-3">
+        <div class="card-head">
+          <div>
+            <span class="tech-tag">BENCH 3 // INQUISITOR LEVEL</span>
+            <h3>3. Hyperparameter Loss Surface Simulator</h3>
+          </div>
+          <div class="btn-inline-group">
+            <button type="button" class="btn-royal-gold" onclick="gradientLab.step()">Step Descent</button>
+            <button type="button" class="btn-royal-purple" onclick="gradientLab.reset()">Reset</button>
+          </div>
+        </div>
+
+        <div class="context-guide-box">
+          <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+          <p><strong>Concept:</strong> Models how gradient descent minimizes error on a loss curve. Demonstrates step sizes and shows why too high of a learning rate causes the updates to explode.</p>
+          <div class="guide-steps">
+            <span><strong>Try it:</strong> Step down with a learning rate of 0.20 to reach the bottom smoothly. Then slide it up to 1.00 to watch the marble bounce off the curve.</span>
+          </div>
+        </div>
+
+        <div class="split-sandbox">
+          <canvas id="lossCanvas" width="460" height="200"></canvas>
+          <div class="hud-box">
+            <label class="hud-label">LEARNING RATE: <strong id="lrLabel">0.20 (Optimal)</strong></label>
+            <input type="range" id="lrSlider" min="5" max="115" value="20" oninput="gradientLab.setRate(this.value)" class="range-slider">
+            <div class="hud-row" style="margin-top: 10px;">
+              <small>CURRENT WEIGHT (w)</small>
+              <strong id="gradWeight">3.200</strong>
+            </div>
+            <div class="hud-row">
+              <small>SLOPE DERIVATIVE (dL/dw)</small>
+              <strong id="gradDeriv">6.400</strong>
+            </div>
+            <div class="hud-row highlight">
+              <small>CALCULATED LOSS</small>
+              <strong id="gradLoss">10.240</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: TRIAL OF IGNIS -->
+    <section id="tab-dragon" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">DRAGON LAIR // TACTICAL BOSS BATTLE</span>
+        <h2>The Trial of Ignis: AI Dino Mech vs. The Dragon</h2>
+        <p>Pilot your AI Dino Mech into battle against Ignis. Answer foundational machine learning and governance questions correctly to launch attacks and defend against the dragon.</p>
+      </div>
+
+      <div id="dragonLockedCard" class="module-card" style="text-align: center; padding: 45px 20px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">🔒</div>
+        <h3>The Arena is Sealed!</h3>
+        <p class="summary-text" style="max-width: 580px; margin: 0 auto 20px;">
+          Knights must earn at least 600 XP by completing curriculum modules or use the Fast-Pass to unlock the combat arena.
+        </p>
+        <button type="button" class="btn-royal-gold" onclick="app.nav('curriculum')">Study Grimoire Tracks</button>
+      </div>
+
+      <div id="dragonUnlockedArena" class="module-card" style="display: none;">
+        <div class="card-head">
+          <div>
+            <h3>Ignis the Neural Wyrm vs. AI Dino Mech</h3>
+            <span class="sub-badge" id="bossPhaseBadge">ROUND 1: QUESTION CHALLENGE</span>
+          </div>
+          <div class="battle-stats-row">
+            <div class="boss-health-bar-container">
+              <span class="health-label">DINO HP:</span>
+              <div class="boss-hp-track">
+                <div id="playerHpFill" class="boss-hp-fill player-hp" style="width: 100%;"></div>
+              </div>
+              <span id="playerHpText">100 / 100</span>
+            </div>
+            <div class="boss-health-bar-container">
+              <span class="health-label">IGNIS HP:</span>
+              <div class="boss-hp-track">
+                <div id="bossHpFill" class="boss-hp-fill" style="width: 100%;"></div>
+              </div>
+              <span id="bossHpText">100 / 100</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="instructions-banner">
+          <strong>HOW TO PLAY:</strong> Ignis unleashes an AI challenge each round. Read the dragon's attack, analyze the question, and select the correct answer below. Correct answers deal 34 damage to Ignis. Wrong answers cause the Dino Mech to take 25 damage!
+        </div>
+
+        <div class="boss-arena-visual">
+          <canvas id="bossCombatCanvas" width="760" height="220"></canvas>
+          <div class="boss-telemetry-hud">
+            <strong id="bossIncomingMove">Loading round challenge...</strong>
+            <p id="bossMoveDescription">Analyzing combat conditions...</p>
+          </div>
+        </div>
+
+        <div class="tactical-action-console">
+          <h4 id="questionPromptHeading">Choose the correct answer:</h4>
+          <div class="tactical-btn-grid" id="combatTacticsGrid"></div>
+        </div>
+
+        <div id="combatLogBox" class="combat-log-console">
+          <p>⚔️ The Dino Mech stands ready. Select the valid AI engineering answer to deal damage and defend your health.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: SOCRATIC DEBATE -->
+    <section id="tab-socratic" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">DEBATE CHAMBER</span>
+        <h2>Socratic AI vs. Direct Generation Benchmark</h2>
+        <p>Demonstrates how C.R.A.F.T.-calibrated prompts foster genuine critical thinking compared to passive text generation.</p>
+      </div>
+
+      <div class="module-card">
+        <div class="card-head">
+          <h3>Interactive Homework Prompt Dialogue Simulation</h3>
+          <span class="score-pill" id="tutorModeBadge">MODE: SOCRATIC COACH</span>
+        </div>
+        <p class="summary-text">Compare an uncalibrated text generation engine against an ethical Socratic tutor.</p>
+        
+        <div class="prompt-toggle-row">
+          <button type="button" class="btn-head active" id="btnModeSocratic" onclick="socraticSim.setMode('socratic')">Socratic Tutor (C.R.A.F.T. Calibrated)</button>
+          <button type="button" class="btn-head" id="btnModeUnstructured" onclick="socraticSim.setMode('unstructured')">Direct Generation (Academic Risk)</button>
+        </div>
+
+        <div class="dialogue-box-container">
+          <div class="chat-message student-msg">
+            <strong id="chatStudentName">10th Grade Scholar:</strong>
+            <p id="chatStudentPrompt">"Context: AP World History essay on the Industrial Revolution. Role: Debate coach. Action: Challenge my thesis that steam power was purely beneficial for working-class families. Format: 3 targeted counter-questions. Target: High school student."</p>
+          </div>
+          <div class="chat-message ai-msg">
+            <strong id="chatAiName">Archon Engine (Princess Aurelia):</strong>
+            <p id="chatAiResponse">"Let's test your thesis with three historical questions: 1. How did rapid urbanization and unregulated factory working conditions impact infant mortality rates? 2. What happened to skilled artisan cottage weavers when power looms automated production? 3. Did economic gains distribute evenly, or did real wages stagnate during the first 50 years? How will you counter these points in your paper?"</p>
+          </div>
+        </div>
+
+        <div class="hud-box" style="margin-top: 14px;">
+          <div class="hud-row highlight">
+            <small>ACADEMIC INTEGRITY EVALUATION</small>
+            <strong id="chatIntegrityScore" style="color: #059669;">Zone 1: Ethical Socratic Support (100% Student Authorship Preserved)</strong>
+          </div>
+          <p id="chatExplanation" class="caption-text">Using AI to pressure-test argumentation refines reasoning skills without generating submitted text.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: CAPSTONE AUDIT -->
+    <section id="tab-capstone" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">TIER 4 // CAPSTONE AUDIT</span>
+        <h2>Module 04 Capstone: Public District Algorithm Audit</h2>
+        <p>A full audit of an automated educational dropout-forecasting platform submitted to a public school district.</p>
+      </div>
+
+      <div class="module-card tier-card-4">
+        <div class="card-head">
+          <h3>Audit Brief: "EduForecast AI"</h3>
+          <span class="xp-tag">+250 XP Available</span>
+        </div>
+        <p class="summary-text">
+          A vendor is pitching predictive software claiming 92% accuracy in identifying students at risk of failing. The vendor claims zero bias because demographic fields were excluded from the model.
+        </p>
+
+        <div class="audit-grid">
+          <div class="phase-card">
+            <h4>Phase 1: Proxy Variable Identification</h4>
+            <p>Even without explicit demographic tags, algorithms reconstruct protected classes via correlated proxy features:</p>
+            <ul>
+              <li><strong>ZIP Codes:</strong> Reconstruct socioeconomic status and neighborhood property tax funding.</li>
+              <li><strong>Subjective Discipline Referrals:</strong> "Defiance" infractions carry human grader bias, whereas unexcused absences are objective.</li>
+              <li><strong>Home Wi-Fi Logins:</strong> Measures domestic broadband access rather than academic effort.</li>
+            </ul>
+          </div>
+
+          <div class="phase-card">
+            <h4>Phase 2: Error Metric & 80% Rule Audit</h4>
+            <p>High aggregate accuracy frequently masks severe disparities in specific student cohorts:</p>
+            <ul>
+              <li><strong>False Positives (Type I):</strong> Incorrectly labeling an on-track student as at-risk, causing deficit stigma.</li>
+              <li><strong>False Negatives (Type II):</strong> Missing a student who urgently needs academic intervention.</li>
+            </ul>
+            <div class="calc-box">
+              <strong>Pilot Cohort Test:</strong><br>
+              Group A Pass Rate: <strong>70%</strong> | Group B Pass Rate: <strong>42%</strong><br>
+              Impact Ratio: 42 / 70 = <strong>60%</strong> (Below 80% threshold = Disparate Impact)
+            </div>
+          </div>
+
+          <div class="phase-card">
+            <h4>Phase 3: Human-in-the-Loop Governance</h4>
+            <p>Mandatory policy requirements before district adoption:</p>
+            <ol>
+              <li>Algorithmic risk tags must never trigger automated class schedule changes or punitive tracking.</li>
+              <li>Staff hold a right to explanation: counselors must see the top contributing factors behind any score.</li>
+              <li>Student records cannot be retained by third parties for commercial model training under FERPA.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="module-card sub-card">
+          <div class="card-head">
+            <div>
+              <span class="tech-tag">BENCH 4 // EXPERT AUDITOR BENCH</span>
+              <h3>Interactive Classification Threshold & Confusion Matrix</h3>
+            </div>
+            <span class="score-pill" id="cmVerdict">THRESHOLD: 0.50 (STANDARD)</span>
+          </div>
+
+          <div class="context-guide-box">
+            <div class="guide-badge">DIAGNOSTIC PURPOSE</div>
+            <p><strong>Concept:</strong> Binary classifiers evaluate probability outputs against a cutoff threshold. Shifting this threshold alters the trade-off between False Positives (stigmatizing safe students) and False Negatives (missing struggling students), directly shifting adverse impact ratios on protected cohorts.</p>
+            <div class="guide-steps">
+              <span><strong>Try it:</strong> Lower the cutoff to 0.25 to catch more struggling students, and watch False Positives surge, triggering an EEOC adverse impact violation.</span>
+            </div>
+          </div>
+          
+          <div class="split-sandbox">
+            <div class="hud-box">
+              <label class="hud-label">CLASSIFICATION CUTOFF THRESHOLD: <strong id="cmThresholdLbl">0.50</strong></label>
+              <input type="range" id="cmThresholdSlider" min="10" max="90" value="50" oninput="confusionMatrixLab.update(this.value)" class="range-slider">
+              
+              <div class="confusion-matrix-grid">
+                <div class="cm-cell true-pos">
+                  <small>TRUE POSITIVES</small>
+                  <strong id="cmTP">78</strong>
+                  <span class="cell-sub">At-Risk Correctly Aided</span>
+                </div>
+                <div class="cm-cell false-pos">
+                  <small>FALSE POSITIVES</small>
+                  <strong id="cmFP">22</strong>
+                  <span class="cell-sub">Safe Students Flagged</span>
+                </div>
+                <div class="cm-cell false-neg">
+                  <small>FALSE NEGATIVES</small>
+                  <strong id="cmFN">12</strong>
+                  <span class="cell-sub">Struggling Students Missed</span>
+                </div>
+                <div class="cm-cell true-neg">
+                  <small>TRUE NEGATIVES</small>
+                  <strong id="cmTN">88</strong>
+                  <span class="cell-sub">Safe Students Unflagged</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hud-box">
+              <div class="hud-row">
+                <small>MINORITY GROUP B ADVERSE RATIO</small>
+                <strong id="cmAdverseRatio">61.5%</strong>
+              </div>
+              <div class="hud-row highlight">
+                <small>LEGAL EEOC STATUS</small>
+                <strong id="cmLegalStatus" style="color: #ef4444;">VIOLATES 80% FOUR-FIFTHS RULE</strong>
+              </div>
+              <p id="cmPolicyRecommendation" class="caption-text">Higher cutoffs reduce false alarms on safe students but leave struggling students without timely support.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-panel">
+          <h4>Module 4 Capstone Decision Checkpoint</h4>
+          <p><strong>Recommendation Question:</strong> The vendor refuses to share training data or explain why students were flagged. What should the school board conclude?</p>
+          <div class="quiz-btn-row">
+            <button type="button" onclick="app.quiz(3, 0, this)">Reject deployment until independent bias audits, proxy stripping, and explainability safeguards are met</button>
+            <button type="button" onclick="app.quiz(3, 1, this)">Approve procurement immediately because 92% accuracy is sufficient</button>
+            <button type="button" onclick="app.quiz(3, 2, this)">Delete all student records to eliminate bias</button>
+          </div>
+          <div id="qfb3" class="quiz-feedback"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: KNIGHT HUB -->
+    <section id="tab-hub" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">CREDENTIALS PORTFOLIO</span>
+        <h2>Student Scholar Hub & Achievements</h2>
+        <p>All progress saves locally in your browser via localStorage without logins, accounts, or cookies.</p>
+      </div>
+
+      <div class="hub-grid">
+        <div class="module-card">
+          <div class="stat-circle">
+            <span id="hubLvlVal">1</span>
+            <small>LEVEL</small>
+          </div>
+          <div>
+            <h3>Accumulated Score: <span id="hubScoreVal">0</span> / 1000 XP</h3>
+            <div class="bar-track"><div id="hubFillBar" class="bar-fill" style="width: 0%;"></div></div>
+            <p class="summary-text">Complete modules or harvest hidden matrix runes to earn your certificate.</p>
+          </div>
+        </div>
+
+        <div class="module-card">
+          <h3>Curriculum Competencies</h3>
+          <ul class="comp-list">
+            <li><span>Tier 1: Apprentice Foundations</span><strong id="comp0">0%</strong></li>
+            <li><span>Tier 2: Alchemist Coordinates</span><strong id="comp1">0%</strong></li>
+            <li><span>Tier 3: Inquisitor Calculus</span><strong id="comp2">0%</strong></li>
+            <li><span>Tier 4: Governance & Audit</span><strong id="comp3">0%</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="diplomaBanner" class="diploma-card" style="display: none;">
+        <div>
+          <h3>AI Literacy Certification Verified</h3>
+          <p>Certifies verified completion of the NEXUS CITADEL machine learning and governance curriculum.</p>
+        </div>
+        <button type="button" class="btn-royal-gold" onclick="window.print()">Print Official Certificate</button>
+      </div>
+    </section>
+
+    <!-- TAB 9: REFERENCES -->
+    <section id="tab-refs" class="tab-page">
+      <div class="section-title">
+        <span class="blueprint-tag">ACADEMIC DOCUMENTATION</span>
+        <h2>References</h2>
+        <p>System architecture standards and bibliographic citations.</p>
+      </div>
+
+      <div class="ref-grid">
+        <div class="module-card">
+          <h3>1. Graphics and Artwork - Code and Fonts</h3>
+          <p>Graphics & Artwork:
+            We didn’t use any copyrighted images.
+            The castle walls, the characters (Prince Valen and Princess Aurelia), the lesson diagrams, and the Ignis dragon are all original vector shapes and canvas art we coded by hand in SVG and JavaScript.
+          </p>
+          <p>Code & Fonts:
+            We didn't use any website builders (like Wix or WordPress) or external frameworks (like Bootstrap, React, or jQuery). Everything was hand-coded using standard HTML5, CSS3, and JavaScript.
+            Fonts: We used default system fonts that already come installed on your computer or phone (like Segoe UI, Roboto, and standard monospace fonts), so no font licenses were needed.
+          </p>
+        </div>
+        <div class="module-card">
+          <h3>2. Audio Sources and APA 7th Edition Citations</h3>
+          <ul class="ref-list">
+            <li>Audio & Sound Effects:
+              We didn’t download or sample any copyrighted songs, background audio, or sound clips.
+              Every sound you hear is made live by our own code using the browser's built-in Web Audio API.</li>
+            <li>Vaswani, A., et al. (2017). <em>Attention Is All You Need</em>. Advances in Neural Information Processing Systems, 30.</li>
+            <li>Barocas, S., et al. (2023). <em>Fairness and Machine Learning: Limitations and Opportunities</em>. MIT Press.</li>
+            <li>National Institute of Standards and Technology. (2023). <em>AI Risk Management Framework (AI RMF 1.0)</em>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div><strong>NEXUS CITADEL</strong> // Machine Learning Lab</div>
+    <div><a href="javascript:void(0)" onclick="app.nav('refs')">References</a></div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
